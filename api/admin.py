@@ -1,6 +1,8 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.utils.translation import ugettext_lazy as _
+# you need import this for adding jalali calander widget
+import django_jalali.admin as jadmin
 
 from . import models
 
@@ -20,4 +22,10 @@ class UserAdmin(UserAdmin):
     )
 
 
+@admin.register(models.Transaction)
+class TransactionAdmin(admin.ModelAdmin):
+    list_display = ['__str__', 'j_date']
+
+
 admin.site.register(models.Post)
+# admin.site.register(models.Transaction)

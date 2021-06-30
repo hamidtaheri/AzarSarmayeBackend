@@ -15,14 +15,15 @@ Including another URLconf
 """
 from django.conf.urls import url
 from django.urls import path
+from django.views.decorators.csrf import csrf_exempt
 from graphene_django.views import GraphQLView
 
-import views
+from . import views
 from .views import PrivateGraphQLView
 
 urlpatterns = [
-    path("", views.home , name='home'),
-    path("login/", views.login_user , name='login_user'),
-    path("graphql", GraphQLView.as_view(graphiql=True)),
+    path("", views.home, name='home'),
+    path("login/", views.login_user, name='login_user'),
+    path("graphql", csrf_exempt(GraphQLView.as_view(graphiql=True))),
     path("privategraphql", PrivateGraphQLView.as_view(graphiql=True)),
 ]
