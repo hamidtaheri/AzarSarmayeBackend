@@ -24,8 +24,15 @@ class UserAdmin(UserAdmin):
 
 @admin.register(models.Transaction)
 class TransactionAdmin(admin.ModelAdmin):
-    list_display = ['__str__', 'j_date']
+    list_display = ['__str__', 'date', 'shamse_date','ProfitCalculate','created']
+    ordering = ['created']
+    list_filter = ['user']
 
 
+
+@admin.register(models.ProfitCalculate)
+class ProfitCalculateAdmin(admin.ModelAdmin):
+    list_display = ['__str__', 'user',]
+    readonly_fields = ['transaction']
 admin.site.register(models.Post)
 # admin.site.register(models.Transaction)

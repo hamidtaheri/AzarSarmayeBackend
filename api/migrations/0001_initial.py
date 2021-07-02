@@ -49,7 +49,7 @@ class Migration(migrations.Migration):
             name='Transaction',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('j_date', django_jalali.db.models.jDateField(verbose_name='تاریخ')),
+                ('date', django_jalali.db.models.jDateField(verbose_name='تاریخ')),
                 ('amount', models.PositiveBigIntegerField(verbose_name='مبلغ')),
                 ('type', models.CharField(choices=[('Variz', 'واریز'), ('Bardast', 'برداشت')], max_length=7, verbose_name='نوع')),
                 ('created', models.DateTimeField(auto_now_add=True)),

@@ -12,7 +12,7 @@ class Migration(migrations.Migration):
     operations = [
         migrations.AlterField(
             model_name='transaction',
-            name='j_date',
+            name='date',
             field=models.DateField(verbose_name='تاریخ'),
         ),
     ]

@@ -3,6 +3,7 @@ import datetime
 import django_jalali.db.models
 import graphene
 import graphql_jwt
+import jdatetime
 from django.contrib.auth import authenticate
 from django.core.exceptions import PermissionDenied
 from graphene import relay, Enum
@@ -32,12 +33,12 @@ class UserType(DjangoObjectType):
 class TransactionType(DjangoObjectType):
     shamse_date = graphene.String()
 
-    def resolve_j_date(root: Transaction, info):
-        root.j_date.togregorian()
-        return root.j_date.togregorian()
+    # def resolve_j_date(root: Transaction, info):
+    #     root.date.togregorian()
+    #     return root.date.togregorian()
 
     def resolve_shamse_date(root: Transaction, info):
-        return root.j_date.strftime(format="%Y-%m-%d")
+        return jdatetime.date.fromgregorian(date=root.date).strftime(format="%Y-%m-%d")
 
     class Meta:
         model = Transaction
@@ -116,7 +117,7 @@ class CreateTransaction(graphene.Mutation):
 
     def mutate(self, info, user_id, date, amount, transact_type):
         user = User.objects.get(id=user_id)
-        tr = Transaction.objects.create(user=user, amount=amount, j_date=date, type=transact_type.value)
+        tr = Transaction.objects.create(user=user, amount=amount, date=date, type=transact_type.value)
 
         return CreateTransaction(transaction=tr)
 
