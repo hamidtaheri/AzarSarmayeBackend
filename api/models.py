@@ -11,6 +11,10 @@ from django_jalali.db import models as jmodels
 from django.contrib.auth import get_user_model
 
 
+class MyException(Exception):
+    pass
+
+
 class User(AbstractUser):
     mobile = models.CharField('تلفن همراه', max_length=11, blank=True, null=True, help_text='شماره موبایل')
 
@@ -89,7 +93,6 @@ class Transaction(models.Model):
         print(f'save {self.user} {self.type} {self.amount}')
 
         self.before_save_transaction()
-        super().save(*args, **kwargs)
 
         profit_calculate_objects_for_user: QuerySet[ProfitCalculate] = ProfitCalculate.objects.filter(user=self.user)
         # قبلا در جدول محاسبه سود برای این کاربر رکوردی ثبت نشده است
@@ -98,6 +101,9 @@ class Transaction(models.Model):
             new_profit_calculate.user = self.user
             new_profit_calculate.date_from = self.date
             new_profit_calculate.amount = self.amount
+
+            super().save(*args, **kwargs)
+
             new_profit_calculate.transaction = self
             new_profit_calculate.save()
             # اولین رکورد در جدول محاسبه سود برای این کاربر ثبت شد
@@ -113,7 +119,11 @@ class Transaction(models.Model):
                     profit_calculate_for_user_latest_by_id == profit_calculate_for_user_latest_date_to[0]:
                 latest_profit_calculate: ProfitCalculate = profit_calculate_for_user_latest_by_created
                 latest_profit_calculate.date_to = self.date
-                latest_profit_calculate.days = (self.date - latest_profit_calculate.date_from).days
+                days = (self.date - latest_profit_calculate.date_from).days
+                if days < 0:
+                    raise MyException(
+                        f'new transaction date ({self.date}) must newest from last transaction ({latest_profit_calculate.date_from})')
+                latest_profit_calculate.days = days
                 latest_profit_calculate.save()
 
                 new_profit_calculate.user = self.user
@@ -125,6 +135,9 @@ class Transaction(models.Model):
                     new_amount = latest_profit_calculate.amount + self.amount
 
                 new_profit_calculate.amount = new_amount
+
+                super().save(*args, **kwargs)
+
                 new_profit_calculate.transaction = self
                 new_profit_calculate.save()
 
