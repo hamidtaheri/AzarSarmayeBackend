@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'django_filters',
     'corsheaders',
     'django_jalali',
+    'import_export',
 ]
 
 MIDDLEWARE = [

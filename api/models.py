@@ -22,6 +22,29 @@ class User(AbstractUser):
         return f'{self.username}'
 
 
+class Ashkash(models.Model):
+    Fname = models.CharField(max_length=100, blank=True, null=True)
+    Lname = models.CharField(max_length=100, blank=True, null=True)
+    CodeMeli = models.CharField(max_length=10, blank=True, null=True)
+    Adress = models.CharField(max_length=100, blank=True, null=True)
+    ShomareKart = models.CharField(max_length=100, blank=True, null=True)
+    Hesab = models.CharField(max_length=100, blank=True, null=True)
+    Moaref_Tbl_Ashkhas_id = models.IntegerField(blank=True, null=True)
+    Mizan_Har_Melyoon =models.IntegerField(blank=True, null=True)
+    Mizan_Har_Melyoon_Moaref = models.IntegerField(blank=True, null=True)
+    Daryaft_Sood = models.BooleanField(blank=True, null=True)
+    Des= models.CharField(max_length=100, blank=True, null=True)
+    VarizBeMoaref = models.BooleanField(blank=True, null=True)
+    MorefiBekhod = models.BooleanField(blank=True, null=True)
+    Tel=models.CharField(max_length=20, blank=True, null=True)
+    Moaref_Tbl_Ashkhas_id2 = models.IntegerField(blank=True, null=True)
+    Mizan_Har_Melyoon_Moaref2 = models.IntegerField(blank=True, null=True)
+    MorefiBekhod2 = models.BooleanField(blank=True, null=True)
+
+    def __str__(self):
+        return f'{self.Fname}   {self.Lname}'
+
+
 class Post(models.Model):
     title = models.CharField('عنوان', max_length=100, blank=False, null=False)
     body = models.TextField('متن', blank=True, null=True)
