@@ -3,6 +3,7 @@ from django.contrib.auth.admin import UserAdmin
 from django.utils.translation import ugettext_lazy as _
 # you need import this for adding jalali calander widget
 import django_jalali.admin as jadmin
+from import_export.admin import ImportExportModelAdmin
 
 from . import models
 
@@ -42,5 +43,34 @@ class ProfitCalculateAdmin(admin.ModelAdmin):
     readonly_fields = ['transaction']
 
 
+class TarakoneshInline(admin.TabularInline):
+    model = models.Tarakonesh
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(models.Ashkhas)
+class AshkasAdmin(ImportExportModelAdmin):
+    list_display = ['id', '__str__', 'Moaref_Tbl_Ashkhas_id', 'Mizan_Har_Melyoon', 'Mizan_Har_Melyoon_Moaref']
+    list_filter = ['Moaref_Tbl_Ashkhas_id', ]
+    search_fields = ['id', 'Lname']
+    ordering = ['id']
+    inlines = [TarakoneshInline]
+
+
+@admin.register(models.Tarakonesh)
+class TarakoneshAdmin(ImportExportModelAdmin):
+    list_display = ['__str__', 'shakhs', 'tarikh', 'kind', 'Mablagh', ]
+    list_filter = ['kind', 'date_time', ]
+    search_fields = ['shakhs__Lname', ]
+
+
+@admin.register(models.TransactionKind)
+class TarakoneshAdmin(ImportExportModelAdmin):
+    pass
+
+
 admin.site.register(models.Post)
+# admin.site.register(models.TransactionKind)
 # admin.site.register(models.Transaction)

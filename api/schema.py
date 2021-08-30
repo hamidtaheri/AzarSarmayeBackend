@@ -37,8 +37,8 @@ class TransactionType(DjangoObjectType):
     #     root.date.togregorian()
     #     return root.date.togregorian()
 
-    def resolve_shamse_date(root: Transaction, info):
-        return jdatetime.date.fromgregorian(date=root.date).strftime(format="%Y-%m-%d")
+    def resolve_shamse_date(self: Transaction, info):
+        return jdatetime.date.fromgregorian(date=self.date).strftime(format="%Y-%m-%d")
 
     class Meta:
         model = Transaction
@@ -46,9 +46,42 @@ class TransactionType(DjangoObjectType):
         # exclude = ("created", "created_by", "modified", "modified_by")
 
 
-class TransactionTypeEnum(Enum):
+class Transaction_Type_Enum(Enum):
     variz = "Variz"
     bardasht = "Bardasht"
+
+
+class AshkhasType(DjangoObjectType):
+    class Meta:
+        model = Ashkhas
+        exclude = ('MorefiBekhod2',)
+        filter_fields = {
+            'id': ['exact'],
+            'Lname': ['exact', 'icontains', 'istartswith'],
+        }
+        interfaces = (relay.Node,)
+
+    @classmethod
+    def get_queryset(cls, queryset, info):
+        # if info.context.user.is_anonymous:
+        #     return queryset.filter(published=True)
+        return queryset
+
+
+class TrakoneshType(DjangoObjectType):
+    class Meta:
+        model = Tarakonesh
+        fields = ('shakhs', 'Tarikh_Moaser', 'date_time', 'Mablagh', 'DarMelyoon', 'kind', 'Des',)
+        filter_fields = {'shakhs__id': ['exact'], }
+        # exclude = ('tarikh')
+        interfaces = (relay.Node,)
+
+
+class TransactionKindType(DjangoObjectType):
+    class Meta:
+        model = TransactionKind
+        fields = ['id', 'title']
+        filter_fields = {'id': ['exact']}
 
 
 class Query(graphene.ObjectType):
@@ -58,6 +91,8 @@ class Query(graphene.ObjectType):
     # users = graphene.List(UserType)
     users = DjangoFilterConnectionField(UserType)
     transactions = graphene.List(TransactionType)
+    ashkhas = DjangoFilterConnectionField(AshkhasType)
+    trakoneshs = DjangoFilterConnectionField(TrakoneshType)
 
     @login_required
     def resolve_me(root, info, **kwargs):
@@ -86,6 +121,23 @@ class Query(graphene.ObjectType):
         transactions = Transaction.objects.all()
         return transactions
 
+    @login_required
+    def resolve_ashkhas(self, info, **kwargs):
+        current_user: User = info.context.user
+        if current_user.is_superuser:
+            return Ashkhas.objects.all()
+        else:
+            t = Ashkhas.objects.filter(user=current_user)
+            return t
+
+    def resolve_trakoneshs(self, info, **kwargs):
+        current_user: User = info.context.user
+        if current_user.is_superuser:
+            return Tarakonesh.objects.all()
+        else:
+            tr = Tarakonesh.objects.filter(shakhs__user=current_user)
+            return tr
+
 
 # ----------------
 
@@ -113,7 +165,7 @@ class CreateTransaction(graphene.Mutation):
         user_id = graphene.Int(required=True, description='کاربر تراکنش')
         date = graphene.Date(required=True)
         amount = graphene.Int(required=True)
-        transact_type = TransactionTypeEnum(required=True)
+        transact_types = Transaction_Type_Enum(required=True)
 
     def mutate(self, info, user_id, date, amount, transact_type):
         user = User.objects.get(id=user_id)

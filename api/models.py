@@ -22,21 +22,23 @@ class User(AbstractUser):
         return f'{self.username}'
 
 
-class Ashkash(models.Model):
+class Ashkhas(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='users',blank=True,null=True)
     Fname = models.CharField(max_length=100, blank=True, null=True)
     Lname = models.CharField(max_length=100, blank=True, null=True)
     CodeMeli = models.CharField(max_length=10, blank=True, null=True)
-    Adress = models.CharField(max_length=100, blank=True, null=True)
+    Adress = models.CharField(max_length=500, blank=True, null=True)
     ShomareKart = models.CharField(max_length=100, blank=True, null=True)
     Hesab = models.CharField(max_length=100, blank=True, null=True)
-    Moaref_Tbl_Ashkhas_id = models.IntegerField(blank=True, null=True)
-    Mizan_Har_Melyoon =models.IntegerField(blank=True, null=True)
+    Moaref_Tbl_Ashkhas_id = models.ForeignKey('self', verbose_name='معرف', blank=True, null=True,
+                                              on_delete=models.CASCADE, related_name='moarefi_shode_ha')
+    Mizan_Har_Melyoon = models.IntegerField(blank=True, null=True)
     Mizan_Har_Melyoon_Moaref = models.IntegerField(blank=True, null=True)
     Daryaft_Sood = models.BooleanField(blank=True, null=True)
-    Des= models.CharField(max_length=100, blank=True, null=True)
+    Des = models.CharField(max_length=100, blank=True, null=True)
     VarizBeMoaref = models.BooleanField(blank=True, null=True)
     MorefiBekhod = models.BooleanField(blank=True, null=True)
-    Tel=models.CharField(max_length=20, blank=True, null=True)
+    Tel = models.CharField(max_length=20, blank=True, null=True)
     Moaref_Tbl_Ashkhas_id2 = models.IntegerField(blank=True, null=True)
     Mizan_Har_Melyoon_Moaref2 = models.IntegerField(blank=True, null=True)
     MorefiBekhod2 = models.BooleanField(blank=True, null=True)
@@ -55,12 +57,20 @@ class Post(models.Model):
         return f'{self.title}'
 
 
+class TransactionKind(models.Model):
+    title = models.CharField(verbose_name='نوع تراکنش', max_length=30)
+    description = models.TextField(verbose_name='توضیح')
+
+    def __str__(self):
+        return f'{self.id}-{self.title}'
+
+
 class Transaction(models.Model):
     charge = 'charge'
     withdraw = 'withdraw'
     withdraw_profit = 'withdraw_profit'
 
-    TRASACTION_TYPE = [
+    TRASACTION_KINDS = [
         (charge, "واریز"),
         (withdraw, "برداشت"),
         (withdraw_profit, "برداشت سود"),
@@ -71,7 +81,7 @@ class Transaction(models.Model):
     # date = jmodels.jDateField(verbose_name='تاریخ', blank=False, null=False)
     date = models.DateField(verbose_name='تاریخ', blank=False, null=False)
     amount = models.PositiveBigIntegerField(verbose_name='مبلغ', blank=False, null=False)
-    type = models.CharField(verbose_name='نوع', choices=TRASACTION_TYPE, max_length=20)
+    kind = models.ForeignKey(TransactionKind, verbose_name='نوع', on_delete=models.CASCADE)
 
     # logging fields
     created = models.DateTimeField(auto_now_add=True, editable=False)
@@ -96,7 +106,7 @@ class Transaction(models.Model):
         )
 
     def __str__(self):
-        return f'{self.type} {self.amount} {self.user} {self.date}'
+        return f'{self.kind} {self.amount} {self.user} {self.date}'
 
     def before_save_transaction(self):
         current_user: User = get_current_user()
@@ -113,7 +123,7 @@ class Transaction(models.Model):
         print(self)
 
     def save(self, *args, **kwargs):
-        print(f'save {self.user} {self.type} {self.amount}')
+        print(f'save {self.user} {self.kind} {self.amount}')
 
         self.before_save_transaction()
 
@@ -165,6 +175,23 @@ class Transaction(models.Model):
                 new_profit_calculate.save()
 
             print(f'ProfitCalculate  availebale for user:{self.user}')
+
+
+class Tarakonesh(models.Model):
+    shakhs = models.ForeignKey(Ashkhas, on_delete=models.CASCADE,related_name='tarakoneshha')
+    tarikh = models.CharField(max_length=10)
+    Tarikh_Moaser = models.CharField(max_length=10)
+    Tarikh_Moaser_Moaref = models.CharField(max_length=10)
+    date_time = models.DateTimeField()
+    Mablagh = models.BigIntegerField()
+    kind = models.ForeignKey(TransactionKind, on_delete=models.CASCADE)
+    NahveyePardakht = models.CharField(max_length=40, blank=True, null=True)
+    Des = models.CharField(max_length=100, blank=True, null=True)
+    Tbl_Pardakht_List_id = models.IntegerField(blank=True, null=True)
+    DarMelyoon = models.IntegerField()
+
+    def __str__(self):
+        return f'{self.id} {self.shakhs.Lname}'
 
 
 class ProfitCalculate(models.Model):

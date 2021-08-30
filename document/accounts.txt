@@ -1,0 +1,16 @@
+sadidsarmaye@hotmail.com
+ss_Admin123
+2006/3/15
+
+
+
+https://www.pythonanywhere.com/
+email : sadidsarmaye@hotmail.com
+user : sadid
+password : Admin123
+
+
+
+remotemysql.com
+email : sadidsarmaye@hotmail.com
+password : Admin123
