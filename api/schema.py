@@ -86,13 +86,14 @@ class TransactionKindType(DjangoObjectType):
 
 class Query(graphene.ObjectType):
     me = graphene.Field(UserType)
-    hello = graphene.String(default_value="Hi!")
+    # hello = graphene.String(default_value="Hi!")
     posts = graphene.List(PostType)
     # users = graphene.List(UserType)
     users = DjangoFilterConnectionField(UserType)
     transactions = graphene.List(TransactionType)
     ashkhas = DjangoFilterConnectionField(AshkhasType)
-    trakoneshs = DjangoFilterConnectionField(TrakoneshType)
+    tarakoneshs = DjangoFilterConnectionField(TrakoneshType)
+    transaction_kinds = graphene.List(TransactionKindType)
 
     @login_required
     def resolve_me(root, info, **kwargs):
@@ -130,13 +131,16 @@ class Query(graphene.ObjectType):
             t = Ashkhas.objects.filter(user=current_user)
             return t
 
-    def resolve_trakoneshs(self, info, **kwargs):
+    def resolve_tarakoneshs(self, info, **kwargs):
         current_user: User = info.context.user
         if current_user.is_superuser:
             return Tarakonesh.objects.all()
         else:
             tr = Tarakonesh.objects.filter(shakhs__user=current_user)
             return tr
+
+    def resolve_transaction_kinds(root, info):
+        return TransactionKind.objects.all()
 
 
 # ----------------
