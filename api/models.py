@@ -6,7 +6,7 @@ from django.contrib.auth.models import AbstractUser
 from django.core.exceptions import PermissionDenied
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
-from django.db.models import QuerySet
+from django.db.models import QuerySet, Sum
 from django_jalali.db import models as jmodels
 from django.contrib.auth import get_user_model
 
@@ -23,7 +23,7 @@ class User(AbstractUser):
 
 
 class Ashkhas(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='users',blank=True,null=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='users', blank=True, null=True)
     Fname = models.CharField(max_length=100, blank=True, null=True)
     Lname = models.CharField(max_length=100, blank=True, null=True)
     CodeMeli = models.CharField(max_length=10, blank=True, null=True)
@@ -42,6 +42,15 @@ class Ashkhas(models.Model):
     Moaref_Tbl_Ashkhas_id2 = models.IntegerField(blank=True, null=True)
     Mizan_Har_Melyoon_Moaref2 = models.IntegerField(blank=True, null=True)
     MorefiBekhod2 = models.BooleanField(blank=True, null=True)
+
+    @property
+    def seporde(self):
+        seporde = Tarakonesh.objects.filter(shakhs=self, kind=1).aggregate(Sum('Mablagh'))
+        try:
+            sum = seporde['Mablagh__sum']
+        except IndexError:
+            sum = 0
+        return sum
 
     def __str__(self):
         return f'{self.Fname}   {self.Lname}'
@@ -178,7 +187,7 @@ class Transaction(models.Model):
 
 
 class Tarakonesh(models.Model):
-    shakhs = models.ForeignKey(Ashkhas, on_delete=models.CASCADE,related_name='tarakoneshha')
+    shakhs = models.ForeignKey(Ashkhas, on_delete=models.CASCADE, related_name='tarakoneshha')
     tarikh = models.CharField(max_length=10)
     Tarikh_Moaser = models.CharField(max_length=10)
     Tarikh_Moaser_Moaref = models.CharField(max_length=10)

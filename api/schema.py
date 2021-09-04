@@ -6,6 +6,7 @@ import graphql_jwt
 import jdatetime
 from django.contrib.auth import authenticate
 from django.core.exceptions import PermissionDenied
+from django_filters import OrderingFilter
 from graphene import relay, Enum
 from django.db.models import Q
 from graphene_django import DjangoObjectType
@@ -13,6 +14,16 @@ from graphene_django.filter import DjangoFilterConnectionField
 from graphql_jwt.decorators import login_required, staff_member_required
 from graphql_jwt.shortcuts import get_token
 from .models import *
+
+
+class CountableConnectionBase(relay.Connection):
+    class Meta:
+        abstract = True
+
+    total_count = graphene.Int()
+
+    def resolve_total_count(self, info, **kwargs):
+        return self.iterable.count()
 
 
 class PostType(DjangoObjectType):
@@ -52,6 +63,8 @@ class Transaction_Type_Enum(Enum):
 
 
 class AshkhasType(DjangoObjectType):
+    seporde = graphene.Float(source='seporde')  # اتصال به @property
+
     class Meta:
         model = Ashkhas
         exclude = ('MorefiBekhod2',)
@@ -68,13 +81,19 @@ class AshkhasType(DjangoObjectType):
         return queryset
 
 
-class TrakoneshType(DjangoObjectType):
+class TarakoneshType(DjangoObjectType):
     class Meta:
         model = Tarakonesh
         fields = ('shakhs', 'Tarikh_Moaser', 'date_time', 'Mablagh', 'DarMelyoon', 'kind', 'Des',)
-        filter_fields = {'shakhs__id': ['exact'], }
+        filter_fields = {'shakhs__id': ['exact'],
+                         'date_time': ['lte', 'gte', 'range'], }
         # exclude = ('tarikh')
+        connection_class = CountableConnectionBase
         interfaces = (relay.Node,)
+
+        # order_by = OrderingFilter(
+        #     fields=('date_time')
+        # )
 
 
 class TransactionKindType(DjangoObjectType):
@@ -92,7 +111,7 @@ class Query(graphene.ObjectType):
     users = DjangoFilterConnectionField(UserType)
     transactions = graphene.List(TransactionType)
     ashkhas = DjangoFilterConnectionField(AshkhasType)
-    tarakoneshs = DjangoFilterConnectionField(TrakoneshType)
+    tarakoneshs = DjangoFilterConnectionField(TarakoneshType)
     transaction_kinds = graphene.List(TransactionKindType)
 
     @login_required

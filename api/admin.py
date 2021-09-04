@@ -52,7 +52,7 @@ class TarakoneshInline(admin.TabularInline):
 
 @admin.register(models.Ashkhas)
 class AshkasAdmin(ImportExportModelAdmin):
-    list_display = ['id', '__str__', 'Moaref_Tbl_Ashkhas_id', 'Mizan_Har_Melyoon', 'Mizan_Har_Melyoon_Moaref']
+    list_display = ['id', '__str__', 'Moaref_Tbl_Ashkhas_id', 'Mizan_Har_Melyoon', 'seporde']
     list_filter = ['Moaref_Tbl_Ashkhas_id', ]
     search_fields = ['id', 'Lname']
     ordering = ['id']

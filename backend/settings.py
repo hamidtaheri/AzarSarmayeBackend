@@ -18,8 +18,8 @@ environ.Env.read_env()
 # False if not in os.environ
 DEBUG = env('DEBUG')
 
-# Raises django's ImproperlyConfigured exception if SECRET_KEY not in os.environ
-SECRET_KEY = env('SECRET_KEY')
+# SECRET_KEY = env('SECRET_KEY')
+SECRET_KEY = '-7_0j7bhdb$dd#&gm*qv^06i!3$8rtw9p4^bdkrpi^p$hav6e'
 
 # DATABASES = {
 #     # read os.environ['DATABASE_URL'] and raises ImproperlyConfigured exception if not found
