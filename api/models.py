@@ -31,7 +31,7 @@ class Ashkhas(models.Model):
     ShomareKart = models.CharField(max_length=100, blank=True, null=True)
     Hesab = models.CharField(max_length=100, blank=True, null=True)
     Moaref_Tbl_Ashkhas_id = models.ForeignKey('self', verbose_name='معرف', blank=True, null=True,
-                                              on_delete=models.CASCADE, related_name='moarefi_shode_ha')
+                                              on_delete=models.CASCADE, related_name='+') # moarefi_shode_ha
     Mizan_Har_Melyoon = models.IntegerField(blank=True, null=True)
     Mizan_Har_Melyoon_Moaref = models.IntegerField(blank=True, null=True)
     Daryaft_Sood = models.BooleanField(blank=True, null=True)

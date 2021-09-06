@@ -62,12 +62,27 @@ class Transaction_Type_Enum(Enum):
     bardasht = "Bardasht"
 
 
+class MoarefiShodeHaType(DjangoObjectType):
+    class Meta:
+        model = Ashkhas
+        exclude = ('seporde', 'tarakoneshha', 'Moaref_Tbl_Ashkhas_id',)
+
+
 class AshkhasType(DjangoObjectType):
     seporde = graphene.Float(source='seporde')  # اتصال به @property
+    moarefi_shode_ha = graphene.List(of_type=MoarefiShodeHaType)
+    moaref = graphene.String(description='معرف')
+
+    def resolve_moarefi_shode_ha(self: Ashkhas, info):
+        current_user: User = info.context.user
+        return Ashkhas.objects.filter(Moaref_Tbl_Ashkhas_id=self).all()
+
+    def resolve_moaref(self: Ashkhas, info):
+        return f'{self.Moaref_Tbl_Ashkhas_id.Fname} {self.Moaref_Tbl_Ashkhas_id.Lname}'
 
     class Meta:
         model = Ashkhas
-        exclude = ('MorefiBekhod2',)
+        exclude = ('MorefiBekhod2', 'Moaref_Tbl_Ashkhas_id',)
         filter_fields = {
             'id': ['exact'],
             'Lname': ['exact', 'icontains', 'istartswith'],
