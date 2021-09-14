@@ -1,5 +1,5 @@
 import datetime
-
+from django.db.models import Avg, Count, Min, Sum
 import django_jalali.db.models
 import graphene
 import graphql_jwt
@@ -16,14 +16,19 @@ from graphql_jwt.shortcuts import get_token
 from .models import *
 
 
-class CountableConnectionBase(relay.Connection):
+class count_sum_tarakonesh_ConnectionBase(relay.Connection):
     class Meta:
         abstract = True
 
     total_count = graphene.Int()
+    total_sum = graphene.Float()
 
     def resolve_total_count(self, info, **kwargs):
         return self.iterable.count()
+
+    def resolve_total_sum(self, info, **kwargs):
+        r = self.iterable.aggregate(Mablagh_sum=Sum('Mablagh'))
+        return r['Mablagh_sum']
 
 
 class PostType(DjangoObjectType):
@@ -101,9 +106,10 @@ class TarakoneshType(DjangoObjectType):
         model = Tarakonesh
         fields = ('shakhs', 'Tarikh_Moaser', 'date_time', 'Mablagh', 'DarMelyoon', 'kind', 'Des',)
         filter_fields = {'shakhs__id': ['exact'],
-                         'date_time': ['lte', 'gte', 'range'], }
+                         'date_time': ['lte', 'gte', 'range'],
+                         'kind__id': ['exact'], }
         # exclude = ('tarikh')
-        connection_class = CountableConnectionBase
+        connection_class = count_sum_tarakonesh_ConnectionBase
         interfaces = (relay.Node,)
 
         # order_by = OrderingFilter(
@@ -115,6 +121,7 @@ class TransactionKindType(DjangoObjectType):
     class Meta:
         model = TransactionKind
         fields = ['id', 'title']
+        # exclude = ('id',)
         filter_fields = {'id': ['exact']}
 
 

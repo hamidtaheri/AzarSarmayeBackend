@@ -31,7 +31,7 @@ class Ashkhas(models.Model):
     ShomareKart = models.CharField(max_length=100, blank=True, null=True)
     Hesab = models.CharField(max_length=100, blank=True, null=True)
     Moaref_Tbl_Ashkhas_id = models.ForeignKey('self', verbose_name='معرف', blank=True, null=True,
-                                              on_delete=models.CASCADE, related_name='+') # moarefi_shode_ha
+                                              on_delete=models.CASCADE, related_name='+')  # moarefi_shode_ha
     Mizan_Har_Melyoon = models.IntegerField(blank=True, null=True)
     Mizan_Har_Melyoon_Moaref = models.IntegerField(blank=True, null=True)
     Daryaft_Sood = models.BooleanField(blank=True, null=True)
@@ -46,6 +46,17 @@ class Ashkhas(models.Model):
     @property
     def seporde(self):
         seporde = Tarakonesh.objects.filter(shakhs=self, kind=1).aggregate(Sum('Mablagh'))
+        try:
+            sum = seporde['Mablagh__sum']
+        except IndexError:
+            sum = 0
+        return sum
+
+    def seporde_ta(self, ta=None) -> int:
+        if ta:
+            seporde = Tarakonesh.objects.filter(shakhs=self, kind=1, g_Tarikh_Moaser__lte=ta).aggregate(Sum('Mablagh'))
+        else:
+            seporde = Tarakonesh.objects.filter(shakhs=self, kind=1).aggregate(Sum('Mablagh'))
         try:
             sum = seporde['Mablagh__sum']
         except IndexError:
@@ -186,14 +197,26 @@ class Transaction(models.Model):
             print(f'ProfitCalculate  availebale for user:{self.user}')
 
 
+def tarikh_to_g(j_date: str) -> datetime.date:
+    jyear = int(float(j_date[0:4]))
+    jmonth = int(float(j_date[5:7]))
+    jday = int(float(j_date[8:10]))
+    (gyear, gmonth, gday) = jdatetime.JalaliToGregorian(jyear=jyear, jmonth=jmonth,
+                                                        jday=jday).getGregorianList()
+    return datetime.datetime(gyear, gmonth, gday)
+
+
 class Tarakonesh(models.Model):
     shakhs = models.ForeignKey(Ashkhas, on_delete=models.CASCADE, related_name='tarakoneshha')
     tarikh = models.CharField(max_length=10)
+    g_tarikh = models.DateField(null=True, blank=True, )
     Tarikh_Moaser = models.CharField(max_length=10)
+    g_Tarikh_Moaser = models.DateField(null=True, blank=True)
     Tarikh_Moaser_Moaref = models.CharField(max_length=10)
+    g_Tarikh_Moaser_Moaref = models.DateField(null=True, blank=True)
     date_time = models.DateTimeField()
     Mablagh = models.BigIntegerField()
-    kind = models.ForeignKey(TransactionKind, on_delete=models.CASCADE)
+    kind = models.ForeignKey(TransactionKind, on_delete=models.CASCADE, related_name='tarakoneshha')
     NahveyePardakht = models.CharField(max_length=40, blank=True, null=True)
     Des = models.CharField(max_length=100, blank=True, null=True)
     Tbl_Pardakht_List_id = models.IntegerField(blank=True, null=True)
