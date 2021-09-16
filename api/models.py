@@ -23,7 +23,7 @@ class User(AbstractUser):
 
 
 class Ashkhas(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='users', blank=True, null=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user', blank=True, null=True, unique=True)
     Fname = models.CharField(max_length=100, blank=True, null=True)
     Lname = models.CharField(max_length=100, blank=True, null=True)
     CodeMeli = models.CharField(max_length=10, blank=True, null=True)
@@ -59,6 +59,17 @@ class Ashkhas(models.Model):
             seporde = Tarakonesh.objects.filter(shakhs=self, kind=1).aggregate(Sum('Mablagh'))
         try:
             sum = seporde['Mablagh__sum']
+        except IndexError:
+            sum = 0
+        return sum
+
+    def tarakonesh_sum_ta(self, kind: int, ta: datetime = None, ):
+        if ta:
+            tr = Tarakonesh.objects.filter(shakhs=self, kind=kind, g_Tarikh_Moaser__lte=ta).aggregate(Sum('Mablagh'))
+        else:
+            tr = Tarakonesh.objects.filter(shakhs=self, kind=kind).aggregate(Sum('Mablagh'))
+        try:
+            sum = tr['Mablagh__sum']
         except IndexError:
             sum = 0
         return sum
