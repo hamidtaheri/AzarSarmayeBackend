@@ -41,9 +41,10 @@ class PostType(DjangoObjectType):
 class UserType(DjangoObjectType):
     class Meta:
         model = User
-        exclude = ("password",)
-        filter_fields = ['id', 'last_name', 'mobile', ]
-        interfaces = (relay.Node,)
+        # exclude = ("password",)
+        # filter_fields = ['id', 'last_name', 'mobile', ]
+        # interfaces = (relay.Node,)
+        fields = ('first_name', 'last_name', 'username', 'email', 'ashkhas')
 
 
 class TransactionType(DjangoObjectType):
@@ -130,7 +131,8 @@ class Query(graphene.ObjectType):
     # hello = graphene.String(default_value="Hi!")
     posts = graphene.List(PostType)
     # users = graphene.List(UserType)
-    users = DjangoFilterConnectionField(UserType)
+    # users = DjangoFilterConnectionField(UserType)
+    users = graphene.List(UserType)
     transactions = graphene.List(TransactionType)
     ashkhas = DjangoFilterConnectionField(AshkhasType)
     tarakoneshs = DjangoFilterConnectionField(TarakoneshType)
@@ -219,9 +221,17 @@ class CreateTransaction(graphene.Mutation):
         return CreateTransaction(transaction=tr)
 
 
+# class CreateTarakonesh(graphene.Mutation):
+#     tarakonesh: Tarakonesh = graphene.Field(type=Tarakonesh,description='ایجاد تراکنش مالی')
+#
+#     class Arguments:
+#         user
+
+
 class Mutation(graphene.ObjectType):
     login = Login.Field()
     create_transaction = CreateTransaction.Field()
+    # create_tarakonesh = CreateTarakonesh.Field()
     token_auth = graphql_jwt.ObtainJSONWebToken.Field()
     delete_token = graphql_jwt.Revoke.Field()
     verify_token = graphql_jwt.Verify.Field()

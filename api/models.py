@@ -23,7 +23,7 @@ class User(AbstractUser):
 
 
 class Ashkhas(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user', blank=True, null=True, unique=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='ashkhas', blank=True, null=True, unique=True)
     Fname = models.CharField(max_length=100, blank=True, null=True)
     Lname = models.CharField(max_length=100, blank=True, null=True)
     CodeMeli = models.CharField(max_length=10, blank=True, null=True)

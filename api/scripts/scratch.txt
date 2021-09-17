@@ -1,0 +1,18 @@
+run mssql server in docker:
+docker run -e "ACCEPT_EULA=Y" -e "SA_PASSWORD=Admin1234" -v "/Users/alamalhoda/Projects/AzarSaryame/windows application":/data  -p 1433:1433 --name sql1 -h sql1  -d mcr.microsoft.com/mssql/server:latest
+
+database URL : jdbc:sqlserver://localhost:1433
+
+
+./manage.py dumpdata --indent 4 --natural-foreign --natural-primary --exclude auth.permission --exclude contenttypes --exclude admin -o dump-1400-06-23.json
+
+
+./manage.py shell -i ipython
+
+%load_ext autoreload
+%autoreload 2
+import api.models
+
+for t in api.models.Tarakonesh.objects.all():
+    t.g_Tarikh_Moaser_Moaref = api.models.tarikh_to_g(t.Tarikh_Moaser_Moaref)
+    t.save()
