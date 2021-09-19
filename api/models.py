@@ -43,36 +43,35 @@ class Ashkhas(models.Model):
     Mizan_Har_Melyoon_Moaref2 = models.IntegerField(blank=True, null=True)
     MorefiBekhod2 = models.BooleanField(blank=True, null=True)
 
-    @property
-    def seporde(self):
-        seporde = Tarakonesh.objects.filter(shakhs=self, kind=1).aggregate(Sum('Mablagh'))
-        try:
-            sum = seporde['Mablagh__sum']
-        except IndexError:
-            sum = 0
-        return sum
-
-    def seporde_ta(self, ta=None) -> int:
-        if ta:
-            seporde = Tarakonesh.objects.filter(shakhs=self, kind=1, g_Tarikh_Moaser__lte=ta).aggregate(Sum('Mablagh'))
-        else:
-            seporde = Tarakonesh.objects.filter(shakhs=self, kind=1).aggregate(Sum('Mablagh'))
-        try:
-            sum = seporde['Mablagh__sum']
-        except IndexError:
-            sum = 0
-        return sum
-
-    def tarakonesh_sum_ta(self, kind: int, ta: datetime = None, ):
+    def tarakonesh_sum_ta(self, kind: int, ta: datetime = None, ) -> float:
         if ta:
             tr = Tarakonesh.objects.filter(shakhs=self, kind=kind, g_Tarikh_Moaser__lte=ta).aggregate(Sum('Mablagh'))
         else:
             tr = Tarakonesh.objects.filter(shakhs=self, kind=kind).aggregate(Sum('Mablagh'))
         try:
-            sum = tr['Mablagh__sum']
+            r = tr['Mablagh__sum']
+            if r is None:
+                r = 0
         except IndexError:
-            sum = 0
-        return sum
+            r = 0
+        return r
+
+    def mojodi_ta(self, ta: datetime.date = None) -> float:
+        """
+        موجودی حساب یعنی مجموع سرمایه گزاری ها و سودها منهای برداشت سود و مرجوعی
+        :param ta:  تا تاریخ اگر تاریخ
+        :return:  موجودی
+        """
+        if ta is None:
+            ta = datetime.date.today()
+
+        seporde = self.tarakonesh_sum_ta(kind=1, ta=ta)  # سپرده گذاری
+        marjo = self.tarakonesh_sum_ta(kind=2, ta=ta)  # مرجوع
+        variz_sod = self.tarakonesh_sum_ta(kind=3, ta=ta)  # واریز سود
+        bardasht_sod = self.tarakonesh_sum_ta(kind=4, ta=ta)  # برداشت سود
+        variz_sod_moarefi = self.tarakonesh_sum_ta(kind=5, ta=ta)  # واریز سود معرفی
+        r = (seporde + variz_sod + variz_sod_moarefi) - (marjo + bardasht_sod)
+        return r
 
     def mohasebe_sod_old(self, az_date: datetime.date, ta_date: datetime.date):
         """
@@ -82,7 +81,31 @@ class Ashkhas(models.Model):
         :param ta_date:
         :return:
         """
-        pass
+        # واریزی های کاربر تا پیش از تاریخ پایان
+        mohasebat_sod: list[ProfitCalculate] = list[ProfitCalculate]()
+        tarakoneshs: QuerySet[Tarakonesh] = Tarakonesh.objects.filter(shakhs=self, g_Tarikh_Moaser__lte=ta_date,
+                                                                      kind_id=1)
+        for tr in tarakoneshs:
+            mohasebe_sod: ProfitCalculate = ProfitCalculate()
+            start_date: datetime.date = az_date
+            end_date: datetime.date = ta_date  # اگر بخشی از این واریزی پیش از پایان دوره مرجوع گردد سود تعداد روز شامل را دریافت میکند نه تا پایان دوره را. این فرض در حال حاظر ممکن نیست
+            if tr.g_Tarikh_Moaser > az_date:
+                start_date = tr.g_Tarikh_Moaser  # این واریزی در بین دوره محاسبه سود انجام شده نه از پیش از آن بنابراین سود معادل تعداد روز شامل را در یافت میکند
+
+            sod = tr.DarMelyoon  # نحوه محاسبه سود؟؟؟؟؟؟؟؟ اینجاست
+
+            mohasebe_sod.user = self.user
+            mohasebe_sod.date_from = start_date
+            mohasebe_sod.date_to = end_date
+            mohasebe_sod.days = (end_date - start_date).days
+            mohasebe_sod.amount = tr.Mablagh
+            mohasebe_sod.percent = sod
+            mohasebe_sod.calculated_amount = tr.Mablagh * (sod / 10000000)
+
+            mohasebat_sod.append(mohasebe_sod)
+
+        return mohasebat_sod
+
 
     def __str__(self):
         return f'{self.Fname}   {self.Lname}'

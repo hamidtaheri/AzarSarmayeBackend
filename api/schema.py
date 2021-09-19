@@ -45,7 +45,7 @@ class UserType(DjangoObjectType):
         # exclude = ("password",)
         # filter_fields = ['id', 'last_name', 'mobile', ]
         # interfaces = (relay.Node,)
-        fields = ('first_name', 'last_name', 'username', 'email', 'shakhs', 'last_login')
+        fields = ('id', 'first_name', 'last_name', 'username', 'email', 'shakhs', 'last_login')
 
 
 class TransactionType(DjangoObjectType):
