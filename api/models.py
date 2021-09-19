@@ -23,7 +23,7 @@ class User(AbstractUser):
 
 
 class Ashkhas(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='ashkhas', blank=True, null=True, unique=True)
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='shakhs', blank=True, null=True, )
     Fname = models.CharField(max_length=100, blank=True, null=True)
     Lname = models.CharField(max_length=100, blank=True, null=True)
     CodeMeli = models.CharField(max_length=10, blank=True, null=True)
@@ -73,6 +73,16 @@ class Ashkhas(models.Model):
         except IndexError:
             sum = 0
         return sum
+
+    def mohasebe_sod_old(self, az_date: datetime.date, ta_date: datetime.date):
+        """
+        محاسبه سود بر اساس اینکه هر واریزی درصد سود خود را دارد
+        :param user:
+        :param az_date:
+        :param ta_date:
+        :return:
+        """
+        pass
 
     def __str__(self):
         return f'{self.Fname}   {self.Lname}'

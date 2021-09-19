@@ -13,6 +13,7 @@ from graphene_django import DjangoObjectType
 from graphene_django.filter import DjangoFilterConnectionField
 from graphql_jwt.decorators import login_required, staff_member_required
 from graphql_jwt.shortcuts import get_token
+
 from .models import *
 
 
@@ -44,7 +45,7 @@ class UserType(DjangoObjectType):
         # exclude = ("password",)
         # filter_fields = ['id', 'last_name', 'mobile', ]
         # interfaces = (relay.Node,)
-        fields = ('first_name', 'last_name', 'username', 'email', 'ashkhas')
+        fields = ('first_name', 'last_name', 'username', 'email', 'shakhs', 'last_login')
 
 
 class TransactionType(DjangoObjectType):
@@ -75,6 +76,7 @@ class MoarefiShodeHaType(DjangoObjectType):
 
 
 class AshkhasType(DjangoObjectType):
+    id = graphene.ID(source='pk', required=True)
     seporde = graphene.Float(source='seporde')  # اتصال به @property
     moarefi_shode_ha = graphene.List(of_type=MoarefiShodeHaType)
     moaref = graphene.String(description='معرف')
@@ -103,6 +105,8 @@ class AshkhasType(DjangoObjectType):
 
 
 class TarakoneshType(DjangoObjectType):
+    id = graphene.ID(source='pk', required=True)
+
     class Meta:
         model = Tarakonesh
         fields = ('shakhs', 'Tarikh_Moaser', 'date_time', 'Mablagh', 'DarMelyoon', 'kind', 'Des',)
@@ -133,6 +137,7 @@ class Query(graphene.ObjectType):
     # users = graphene.List(UserType)
     # users = DjangoFilterConnectionField(UserType)
     users = graphene.List(UserType)
+    last_logged_in_users = graphene.List(UserType)
     transactions = graphene.List(TransactionType)
     ashkhas = DjangoFilterConnectionField(AshkhasType)
     tarakoneshs = DjangoFilterConnectionField(TarakoneshType)
@@ -153,6 +158,10 @@ class Query(graphene.ObjectType):
     @staff_member_required
     def resolve_users(root, info, **kwargs):
         return User.objects.all()
+
+    @staff_member_required
+    def resolve_last_logged_in_users(root, info, **kwargs):
+        return User.objects.order_by('-last_login')[0:10]
 
     @login_required
     def resolve_transactions(root, info, **kwargs):
