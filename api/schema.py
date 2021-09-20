@@ -7,7 +7,7 @@ import jdatetime
 from django.contrib.auth import authenticate
 from django.core.exceptions import PermissionDenied
 from django_filters import OrderingFilter
-from graphene import relay, Enum
+from graphene import relay, Enum, Int, Date
 from django.db.models import Q
 from graphene_django import DjangoObjectType
 from graphene_django.filter import DjangoFilterConnectionField
@@ -75,11 +75,33 @@ class MoarefiShodeHaType(DjangoObjectType):
         exclude = ('seporde', 'tarakoneshha', 'Moaref_Tbl_Ashkhas_id',)
 
 
+class ProfitCalculateType(DjangoObjectType):
+    id = graphene.ID(source='pk', required=True)
+    description = graphene.String()
+
+    class Meta:
+        model = ProfitCalculate
+        fields = ('amount', 'date_from', 'date_to', 'percent', 'calculated_amount', 'days',)
+
+    def resolve_description(self, info):
+        return self
+
+
 class AshkhasType(DjangoObjectType):
     id = graphene.ID(source='pk', required=True)
     seporde = graphene.Float(source='seporde')  # اتصال به @property
     moarefi_shode_ha = graphene.List(of_type=MoarefiShodeHaType)
     moaref = graphene.String(description='معرف')
+    mohasebe_sod = graphene.List(ProfitCalculateType,
+                                 description='نمایش جزیات محاسبه سود از تاریخ تا تاریخ برای کاربر جاری',
+                                 az_date=Date(required=True, description='از تاریخ'),
+                                 ta_date=Date(required=True, description='تا تاریخ'),
+                                 )
+    sum_of_sod = graphene.Float(
+        description='مجموع سود از تاریخ تا تاریخ برای کاربر جاری',
+        az_date=Date(required=True, description='از تاریخ'),
+        ta_date=Date(required=True, description='تا تاریخ'),
+    )
 
     def resolve_moarefi_shode_ha(self: Ashkhas, info):
         current_user: User = info.context.user
@@ -96,6 +118,28 @@ class AshkhasType(DjangoObjectType):
             'Lname': ['exact', 'icontains', 'istartswith'],
         }
         interfaces = (relay.Node,)
+
+    def resolve_mohasebe_sod(self: Ashkhas, info, az_date, ta_date):
+        current_user: User = info.context.user
+        user: Ashkhas = Ashkhas()
+        if current_user.is_superuser:
+            user = self
+        else:
+            user = Ashkhas.objects.get(user=current_user)
+
+        r, _ = user.mohasebe_sod_old(az_date=az_date, ta_date=ta_date)
+        return r
+
+    def resolve_sum_of_sod(self, info, az_date, ta_date):
+        current_user: User = info.context.user
+        user: Ashkhas = Ashkhas()
+        if current_user.is_superuser:
+            user = self
+        else:
+            user = Ashkhas.objects.get(user=current_user)
+
+        ـ, sum_sod = user.mohasebe_sod_old(az_date=az_date, ta_date=ta_date)
+        return sum_sod
 
     @classmethod
     def get_queryset(cls, queryset, info):
@@ -142,6 +186,12 @@ class Query(graphene.ObjectType):
     ashkhas = DjangoFilterConnectionField(AshkhasType)
     tarakoneshs = DjangoFilterConnectionField(TarakoneshType)
     transaction_kinds = graphene.List(TransactionKindType)
+    mohasebe_sod = graphene.List(ProfitCalculateType,
+                                 description='نمایش سود از تاریخ تا تاریخ برای کاربر',
+                                 user_id=Int(required=True, description='کابر'),
+                                 az_date=Date(required=True, description='از تاریخ'),
+                                 ta_date=Date(required=True, description='تا تاریخ'),
+                                 )
 
     @login_required
     def resolve_me(root, info, **kwargs):
@@ -193,6 +243,18 @@ class Query(graphene.ObjectType):
 
     def resolve_transaction_kinds(root, info):
         return TransactionKind.objects.all()
+
+    @login_required
+    def resolve_mohasebe_sod(root, info, user_id, az_date, ta_date):
+        current_user: User = info.context.user
+        user: Ashkhas = Ashkhas()
+        if current_user.is_superuser:
+            user = Ashkhas.objects.get(id=user_id)
+        else:
+            user = Ashkhas.objects.get(user=current_user)
+
+        r = user.mohasebe_sod_old(az_date=az_date, ta_date=ta_date)
+        return r
 
 
 # ----------------

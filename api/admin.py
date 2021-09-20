@@ -67,10 +67,11 @@ class TarakoneshAdmin(ImportExportModelAdmin):
 
 
 @admin.register(models.TransactionKind)
-class TarakoneshAdmin(ImportExportModelAdmin):
+class TransactionKindAdmin(ImportExportModelAdmin):
     pass
 
 
 admin.site.register(models.Post)
+admin.site.register(models.Pelekan)
 # admin.site.register(models.TransactionKind)
 # admin.site.register(models.Transaction)
