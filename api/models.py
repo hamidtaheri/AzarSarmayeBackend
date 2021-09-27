@@ -15,6 +15,9 @@ class MyException(Exception):
     pass
 
 
+day_in_month = 30
+
+
 class User(AbstractUser):
     mobile = models.CharField('تلفن همراه', max_length=11, blank=True, null=True, help_text='شماره موبایل')
 
@@ -167,7 +170,7 @@ class ProfitCalculate(models.Model):
         ordering = ['created']
 
     def __str__(self):
-        return f' from date: ({self.date_from}) to date: ({self.date_to}) days: ({self.days}) ' \
+        return f' from:({self.date_from} = {miladi_to_shamsi(self.date_from)}) to:({self.date_to} = {miladi_to_shamsi(self.date_to)}) days: ({self.days}) ' \
                f'amount: ({self.amount})  percent: ({self.percent}) final: ({self.calculated_amount})'
 
 
@@ -233,27 +236,12 @@ class Ashkhas(models.Model):
         """
         sum_of_sod = 0
         # واریزی های کاربر تا پیش از تاریخ پایان
-        day_in_month = 30
+
         mohasebat_sod: list[ProfitCalculate] = list[ProfitCalculate]()
         tarakoneshs: QuerySet[Tarakonesh] = Tarakonesh.objects.filter(shakhs=self, g_Tarikh_Moaser__lte=ta_date,
                                                                       kind_id=1)
         for tr in tarakoneshs:
-            mohasebe_sod: ProfitCalculate = ProfitCalculate()
-            start_date: datetime.date = az_date
-            end_date: datetime.date = ta_date  # اگر بخشی از این واریزی پیش از پایان دوره مرجوع گردد سود تعداد روز شامل را دریافت میکند نه تا پایان دوره را. این فرض در حال حاظر ممکن نیست
-            if tr.g_Tarikh_Moaser > az_date:
-                start_date = tr.g_Tarikh_Moaser  # این واریزی در بین دوره محاسبه سود انجام شده نه از پیش از آن بنابراین سود معادل تعداد روز شامل را در یافت میکند
-
-            # sod = tr.DarMelyoon  # نحوه محاسبه سود؟؟؟؟؟؟؟؟ اینجاست
-            sod = sod_calculator(tr)  # نحوه محاسبه سود؟؟؟؟؟؟؟؟ اینجاست
-
-            mohasebe_sod.user = self.user
-            mohasebe_sod.date_from = start_date
-            mohasebe_sod.date_to = end_date
-            mohasebe_sod.days = (end_date - start_date).days + 1  # فاصله روز شروع تا پایان +۱ شد
-            mohasebe_sod.amount = tr.Mablagh
-            mohasebe_sod.percent = sod
-            mohasebe_sod.calculated_amount = tr.Mablagh * (sod / 10000000) * (mohasebe_sod.days / day_in_month)
+            mohasebe_sod: ProfitCalculate = tr.mohasebe_sod(az_date=az_date, ta_date=ta_date)
             sum_of_sod = sum_of_sod + mohasebe_sod.calculated_amount
             mohasebat_sod.append(mohasebe_sod)
 
@@ -285,6 +273,24 @@ class Tarakonesh(models.Model):
     class Meta:
         ordering = ['g_Tarikh_Moaser']
 
+    def mohasebe_sod(self, az_date: datetime.date, ta_date: datetime.date) -> ProfitCalculate:
+        start_date: datetime.date = az_date
+        end_date: datetime.date = ta_date  # اگر بخشی از این واریزی پیش از پایان دوره مرجوع گردد سود تعداد روز شامل را دریافت میکند نه تا پایان دوره را. این فرض در حال حاظر ممکن نیست
+        if self.g_Tarikh_Moaser > az_date:
+            start_date = self.g_Tarikh_Moaser  # این واریزی در بین دوره محاسبه سود انجام شده نه از پیش از آن بنابراین سود معادل تعداد روز شامل را در یافت میکند
+
+        # sod = tr.DarMelyoon  # نحوه محاسبه سود؟؟؟؟؟؟؟؟ اینجاست
+        sod = darsad_calculator(self)  # نحوه محاسبه سود؟؟؟؟؟؟؟؟ اینجاست
+        mohasebe_sod: ProfitCalculate = ProfitCalculate()
+        mohasebe_sod.user = self.shakhs.user
+        mohasebe_sod.date_from = start_date
+        mohasebe_sod.date_to = end_date
+        mohasebe_sod.days = (end_date - start_date).days + 1  # فاصله روز شروع تا پایان +۱ شد
+        mohasebe_sod.amount = self.Mablagh
+        mohasebe_sod.percent = sod
+        mohasebe_sod.calculated_amount = round(self.Mablagh * (sod / 10000000) * (mohasebe_sod.days / day_in_month), 0)
+        return mohasebe_sod
+
 
 class Pelekan(models.Model):
     az = models.PositiveBigIntegerField()
@@ -295,7 +301,7 @@ class Pelekan(models.Model):
         return f'{self.az} --- {self.ta}  :  {self.dar_melyoon}'
 
 
-def sod_calculator(tr: Tarakonesh) -> float:
+def darsad_calculator(tr: Tarakonesh) -> float:
     if tr.g_Tarikh_Moaser < datetime.date(2021, 0o6, 22):  # 1400/04/01
         return tr.DarMelyoon
     else:
@@ -314,10 +320,42 @@ class Post(models.Model):
         return f'{self.title}'
 
 
-def tarikh_to_g(j_date: str) -> datetime.date:
-    jyear = int(float(j_date[0:4]))
-    jmonth = int(float(j_date[5:7]))
-    jday = int(float(j_date[8:10]))
+def shamsi_to_miladi(j_date: str, sep: str = "/") -> datetime.date:
+    """
+    تبدیل تاریخ شمسی به میلادی
+    :param j_date: رشته تاریخ شمسی مانند ۱۴۰۰/۱۰/۰۳
+    :param sep: جدا کننده تاریخ. پیشفرض / است
+    :return: datetime.date تاریخ میلادی
+    """
+    shamsi = j_date.split(sep=sep)
+    jyear = int(float(shamsi[0]))
+    jmonth = int(float(shamsi[1]))
+    jday = int(float(shamsi[2]))
+    # jyear = int(float(j_date[0:4]))
+    # jmonth = int(float(j_date[5:7]))
+    # jday = int(float(j_date[8:10]))
     (gyear, gmonth, gday) = jdatetime.JalaliToGregorian(jyear=jyear, jmonth=jmonth,
                                                         jday=jday).getGregorianList()
-    return datetime.datetime(gyear, gmonth, gday)
+    return datetime.date(gyear, gmonth, gday)
+
+
+def sh2m(j_date: str, sep: str = "/") -> datetime.date:
+    """
+    تبدیل تاریخ شمسی به میلادی
+    :param j_date: رشته تاریخ شمسی مانند ۱۴۰۰/۱۰/۰۳
+    :param sep: جدا کننده تاریخ. پیشفرض / است
+    :return: datetime.date تاریخ میلادی
+    """
+    return shamsi_to_miladi(j_date, sep)
+
+
+def miladi_to_shamsi(g_date: datetime.date) -> str:
+    g_year = g_date.year
+    g_month = g_date.month
+    g_day = g_date.day
+    jalali = jdatetime.GregorianToJalali(g_year, g_month, g_day)
+    return f"{jalali.jyear}/{jalali.jmonth}/{jalali.jday}"
+
+
+def m2sh(g_date: datetime.date) -> str:
+    return miladi_to_shamsi(g_date)

@@ -1,6 +1,7 @@
-import datetime
+from django.contrib.auth.models import update_last_login
 from django.db.models import Avg, Count, Min, Sum
 import django_jalali.db.models
+from django.utils import timezone
 import graphene
 import graphql_jwt
 import jdatetime
@@ -103,6 +104,7 @@ class AshkhasType(DjangoObjectType):
         ta_date=Date(required=True, description='تا تاریخ'),
     )
 
+    # @staff_member_required
     def resolve_moarefi_shode_ha(self: Ashkhas, info):
         current_user: User = info.context.user
         return Ashkhas.objects.filter(Moaref_Tbl_Ashkhas_id=self).all()
@@ -138,7 +140,7 @@ class AshkhasType(DjangoObjectType):
         else:
             user = Ashkhas.objects.get(user=current_user)
 
-        ـ, sum_sod = user.mohasebe_sod_old(az_date=az_date, ta_date=ta_date)
+        r, sum_sod = user.mohasebe_sod_old(az_date=az_date, ta_date=ta_date)
         return sum_sod
 
     @classmethod
@@ -181,7 +183,7 @@ class Query(graphene.ObjectType):
     # users = graphene.List(UserType)
     # users = DjangoFilterConnectionField(UserType)
     users = graphene.List(UserType)
-    last_logged_in_users = graphene.List(UserType)
+    last_logged_in_users = graphene.List(UserType, count=Int())
     transactions = graphene.List(TransactionType)
     ashkhas = DjangoFilterConnectionField(AshkhasType)
     tarakoneshs = DjangoFilterConnectionField(TarakoneshType)
@@ -210,7 +212,7 @@ class Query(graphene.ObjectType):
         return User.objects.all()
 
     @staff_member_required
-    def resolve_last_logged_in_users(root, info, **kwargs):
+    def resolve_last_logged_in_users(root, count, info, **kwargs):
         return User.objects.order_by('-last_login')[0:10]
 
     @login_required
@@ -253,7 +255,7 @@ class Query(graphene.ObjectType):
         else:
             user = Ashkhas.objects.get(user=current_user)
 
-        r = user.mohasebe_sod_old(az_date=az_date, ta_date=ta_date)
+        r, _ = user.mohasebe_sod_old(az_date=az_date, ta_date=ta_date)
         return r
 
 
@@ -272,6 +274,8 @@ class Login(graphene.Mutation):
         if user is None:
             raise PermissionDenied()
         else:
+            user.last_login = timezone.now()
+            user.save(update_fields=['last_login'])
             token = get_token(user)
         return Login(user=user, token=token)
 
