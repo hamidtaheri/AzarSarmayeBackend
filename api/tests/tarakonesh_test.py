@@ -2,12 +2,12 @@ import datetime
 
 import pytz
 from django.test import TestCase
-from api.models import Ashkhas, Tarakonesh, TransactionKind, sh2m, miladi_to_shamsi
+from api.models import Profile, Tarakonesh, TransactionKind, sh2m, miladi_to_shamsi
 
 
 class TarakoneshTestClass(TestCase):
     tk1 = TransactionKind.objects.get(id=1)
-    a = Ashkhas(id=1, Fname='Morteza', Lname='Motahari')
+    a = Profile(id=1, Fname='Morteza', Lname='Motahari')
 
     @classmethod
     def setUpTestData(cls):
@@ -15,7 +15,7 @@ class TarakoneshTestClass(TestCase):
 
         cls.a.save()
         # 
-        # cls.tk1.save()
+        cls.tk1.save()
         pass
 
     def setUp(self):

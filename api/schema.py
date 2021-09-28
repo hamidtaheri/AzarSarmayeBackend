@@ -46,7 +46,7 @@ class UserType(DjangoObjectType):
         # exclude = ("password",)
         # filter_fields = ['id', 'last_name', 'mobile', ]
         # interfaces = (relay.Node,)
-        fields = ('id', 'first_name', 'last_name', 'username', 'email', 'shakhs', 'last_login')
+        fields = ('id', 'first_name', 'last_name', 'username', 'email', 'profile', 'last_login')
 
 
 class TransactionType(DjangoObjectType):
@@ -72,8 +72,8 @@ class Transaction_Type_Enum(Enum):
 
 class MoarefiShodeHaType(DjangoObjectType):
     class Meta:
-        model = Ashkhas
-        exclude = ('seporde', 'tarakoneshha', 'Moaref_Tbl_Ashkhas_id',)
+        model = Profile
+        exclude = ('seporde', 'tarakoneshha', 'presenter',)
 
 
 class ProfitCalculateType(DjangoObjectType):
@@ -105,40 +105,40 @@ class AshkhasType(DjangoObjectType):
     )
 
     # @staff_member_required
-    def resolve_moarefi_shode_ha(self: Ashkhas, info):
+    def resolve_moarefi_shode_ha(self: Profile, info):
         current_user: User = info.context.user
-        return Ashkhas.objects.filter(Moaref_Tbl_Ashkhas_id=self).all()
+        return Profile.objects.filter(Moaref_Tbl_Ashkhas_id=self).all()
 
-    def resolve_moaref(self: Ashkhas, info):
-        return f'{self.Moaref_Tbl_Ashkhas_id.Fname} {self.Moaref_Tbl_Ashkhas_id.Lname}'
+    def resolve_moaref(self: Profile, info):
+        return f'{self.presenter.first_name} {self.presenter.last_name}'
 
     class Meta:
-        model = Ashkhas
-        exclude = ('MorefiBekhod2', 'Moaref_Tbl_Ashkhas_id',)
+        model = Profile
+        exclude = ('self_presenter_2', 'presenter',)
         filter_fields = {
             'id': ['exact'],
-            'Lname': ['exact', 'icontains', 'istartswith'],
+            'last_name': ['exact', 'icontains', 'istartswith'],
         }
         interfaces = (relay.Node,)
 
-    def resolve_mohasebe_sod(self: Ashkhas, info, az_date, ta_date):
+    def resolve_mohasebe_sod(self: Profile, info, az_date, ta_date):
         current_user: User = info.context.user
-        user: Ashkhas = Ashkhas()
+        user: Profile = Profile()
         if current_user.is_superuser:
             user = self
         else:
-            user = Ashkhas.objects.get(user=current_user)
+            user = Profile.objects.get(user=current_user)
 
         r, _ = user.mohasebe_sod_old(az_date=az_date, ta_date=ta_date)
         return r
 
     def resolve_sum_of_sod(self, info, az_date, ta_date):
         current_user: User = info.context.user
-        user: Ashkhas = Ashkhas()
+        user: Profile = Profile()
         if current_user.is_superuser:
             user = self
         else:
-            user = Ashkhas.objects.get(user=current_user)
+            user = Profile.objects.get(user=current_user)
 
         r, sum_sod = user.mohasebe_sod_old(az_date=az_date, ta_date=ta_date)
         return sum_sod
@@ -155,7 +155,7 @@ class TarakoneshType(DjangoObjectType):
 
     class Meta:
         model = Tarakonesh
-        fields = ('shakhs', 'Tarikh_Moaser', 'date_time', 'Mablagh', 'DarMelyoon', 'kind', 'Des',)
+        fields = ('shakhs', 'Tarikh_Moaser', 'date_time', 'Mablagh', 'DarMelyoon', 'kind', 'description',)
         filter_fields = {'shakhs__id': ['exact'],
                          'date_time': ['lte', 'gte', 'range'],
                          'kind__id': ['exact'], }
@@ -230,9 +230,9 @@ class Query(graphene.ObjectType):
     def resolve_ashkhas(self, info, **kwargs):
         current_user: User = info.context.user
         if current_user.is_superuser:
-            return Ashkhas.objects.all()
+            return Profile.objects.all()
         else:
-            t = Ashkhas.objects.filter(user=current_user)
+            t = Profile.objects.filter(user=current_user)
             return t
 
     def resolve_tarakoneshs(self, info, **kwargs):
@@ -249,11 +249,11 @@ class Query(graphene.ObjectType):
     @login_required
     def resolve_mohasebe_sod(root, info, user_id, az_date, ta_date):
         current_user: User = info.context.user
-        user: Ashkhas = Ashkhas()
+        user: Profile = Profile()
         if current_user.is_superuser:
-            user = Ashkhas.objects.get(id=user_id)
+            user = Profile.objects.get(id=user_id)
         else:
-            user = Ashkhas.objects.get(user=current_user)
+            user = Profile.objects.get(user=current_user)
 
         r, _ = user.mohasebe_sod_old(az_date=az_date, ta_date=ta_date)
         return r

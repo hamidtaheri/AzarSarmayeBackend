@@ -50,11 +50,11 @@ class TarakoneshInline(admin.TabularInline):
         return False
 
 
-@admin.register(models.Ashkhas)
+@admin.register(models.Profile)
 class AshkasAdmin(ImportExportModelAdmin):
-    list_display = ['id', '__str__', 'Moaref_Tbl_Ashkhas_id', 'Mizan_Har_Melyoon',]
-    list_filter = ['Moaref_Tbl_Ashkhas_id', ]
-    search_fields = ['id', 'Lname']
+    list_display = ['id', '__str__', 'presenter', 'percent',]
+    list_filter = ['presenter', ]
+    search_fields = ['id', 'last_name']
     ordering = ['id']
     inlines = [TarakoneshInline]
 

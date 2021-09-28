@@ -174,26 +174,26 @@ class ProfitCalculate(models.Model):
                f'amount: ({self.amount})  percent: ({self.percent}) final: ({self.calculated_amount})'
 
 
-class Ashkhas(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='shakhs', blank=True, null=True, )
-    Fname = models.CharField(max_length=100, blank=True, null=True)
-    Lname = models.CharField(max_length=100, blank=True, null=True)
-    CodeMeli = models.CharField(max_length=10, blank=True, null=True)
-    Adress = models.CharField(max_length=500, blank=True, null=True)
-    ShomareKart = models.CharField(max_length=100, blank=True, null=True)
-    Hesab = models.CharField(max_length=100, blank=True, null=True)
-    Moaref_Tbl_Ashkhas_id = models.ForeignKey('self', verbose_name='معرف', blank=True, null=True,
-                                              on_delete=models.CASCADE, related_name='+')  # moarefi_shode_ha
-    Mizan_Har_Melyoon = models.IntegerField(blank=True, null=True)
-    Mizan_Har_Melyoon_Moaref = models.IntegerField(blank=True, null=True)
-    Daryaft_Sood = models.BooleanField(blank=True, null=True)
-    Des = models.CharField(max_length=100, blank=True, null=True)
-    VarizBeMoaref = models.BooleanField(blank=True, null=True)
-    MorefiBekhod = models.BooleanField(blank=True, null=True)
-    Tel = models.CharField(max_length=20, blank=True, null=True)
-    Moaref_Tbl_Ashkhas_id2 = models.IntegerField(blank=True, null=True)
-    Mizan_Har_Melyoon_Moaref2 = models.IntegerField(blank=True, null=True)
-    MorefiBekhod2 = models.BooleanField(blank=True, null=True)
+class Profile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile', blank=True, null=True, )
+    first_name = models.CharField(max_length=100, blank=True, null=True)
+    last_name = models.CharField(max_length=100, blank=True, null=True)
+    code_meli = models.CharField(max_length=10, blank=True, null=True)
+    adress = models.CharField(max_length=500, blank=True, null=True)
+    shomare_kart = models.CharField(max_length=100, blank=True, null=True)
+    shomare_hesab = models.CharField(max_length=100, blank=True, null=True)
+    presenter = models.ForeignKey('self', verbose_name='معرف', blank=True, null=True,
+                                  on_delete=models.CASCADE, related_name='+')  # moarefi_shode_ha
+    percent = models.IntegerField(blank=True, null=True)
+    presenter_percent = models.IntegerField(blank=True, null=True)
+    get_profit = models.BooleanField(blank=True, null=True)
+    description = models.CharField(max_length=100, blank=True, null=True)
+    charge_to_presenter = models.BooleanField(blank=True, null=True)
+    self_presenter = models.BooleanField(blank=True, null=True)
+    tel = models.CharField(max_length=20, blank=True, null=True)
+    presenter_2 = models.IntegerField(blank=True, null=True)
+    presenter_percent_2 = models.IntegerField(blank=True, null=True)
+    self_presenter_2 = models.BooleanField(blank=True, null=True)
 
     def tarakonesh_sum_ta(self, kind: int, ta: datetime = None, ) -> float:
         if ta:
@@ -248,11 +248,11 @@ class Ashkhas(models.Model):
         return mohasebat_sod, sum_of_sod
 
     def __str__(self):
-        return f'{self.Fname}   {self.Lname}'
+        return f'{self.first_name}   {self.last_name}'
 
 
 class Tarakonesh(models.Model):
-    shakhs = models.ForeignKey(Ashkhas, on_delete=models.CASCADE, related_name='tarakoneshha')
+    shakhs = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name='tarakoneshha')
     tarikh = models.CharField(max_length=10)
     g_tarikh = models.DateField(null=True, blank=True, )
     Tarikh_Moaser = models.CharField(max_length=10)
@@ -268,10 +268,18 @@ class Tarakonesh(models.Model):
     DarMelyoon = models.IntegerField()
 
     def __str__(self):
-        return f'{self.id} {self.shakhs.Lname}'
+        return f'{self.id} {self.shakhs.last_name}'
 
     class Meta:
         ordering = ['g_Tarikh_Moaser']
+
+    def darsad_calculator(self) -> float:
+        if self.g_Tarikh_Moaser < datetime.date(2021, 0o6, 22):  # 1400/04/01
+            return self.DarMelyoon
+        else:
+            mojodi = self.shakhs.mojodi_ta(ta=self.g_Tarikh_Moaser)
+            dar_melyon = Pelekan.objects.get(az__lte=mojodi, ta__gte=mojodi).percent
+            return dar_melyon
 
     def mohasebe_sod(self, az_date: datetime.date, ta_date: datetime.date) -> ProfitCalculate:
         start_date: datetime.date = az_date
@@ -280,7 +288,7 @@ class Tarakonesh(models.Model):
             start_date = self.g_Tarikh_Moaser  # این واریزی در بین دوره محاسبه سود انجام شده نه از پیش از آن بنابراین سود معادل تعداد روز شامل را در یافت میکند
 
         # sod = tr.DarMelyoon  # نحوه محاسبه سود؟؟؟؟؟؟؟؟ اینجاست
-        sod = darsad_calculator(self)  # نحوه محاسبه سود؟؟؟؟؟؟؟؟ اینجاست
+        sod = self.darsad_calculator  # نحوه محاسبه سود؟؟؟؟؟؟؟؟ اینجاست
         mohasebe_sod: ProfitCalculate = ProfitCalculate()
         mohasebe_sod.user = self.shakhs.user
         mohasebe_sod.date_from = start_date
@@ -295,19 +303,10 @@ class Tarakonesh(models.Model):
 class Pelekan(models.Model):
     az = models.PositiveBigIntegerField()
     ta = models.PositiveBigIntegerField()
-    dar_melyoon = models.IntegerField()
+    percent = models.IntegerField()
 
     def __str__(self):
-        return f'{self.az} --- {self.ta}  :  {self.dar_melyoon}'
-
-
-def darsad_calculator(tr: Tarakonesh) -> float:
-    if tr.g_Tarikh_Moaser < datetime.date(2021, 0o6, 22):  # 1400/04/01
-        return tr.DarMelyoon
-    else:
-        mojodi = tr.shakhs.mojodi_ta(ta=tr.g_Tarikh_Moaser)
-        dar_melyon = Pelekan.objects.get(az__lte=mojodi, ta__gte=mojodi).dar_melyoon
-        return dar_melyon
+        return f'{self.az} --- {self.ta}  :  {self.percent}'
 
 
 class Post(models.Model):
