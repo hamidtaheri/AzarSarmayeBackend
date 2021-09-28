@@ -29,7 +29,7 @@ class count_sum_tarakonesh_ConnectionBase(relay.Connection):
         return self.iterable.count()
 
     def resolve_total_sum(self, info, **kwargs):
-        r = self.iterable.aggregate(Mablagh_sum=Sum('Mablagh'))
+        r = self.iterable.aggregate(Mablagh_sum=Sum('amount'))
         return r['Mablagh_sum']
 
 
@@ -52,15 +52,15 @@ class UserType(DjangoObjectType):
 class TransactionType(DjangoObjectType):
     shamse_date = graphene.String()
 
-    # def resolve_j_date(root: Transaction, info):
+    # def resolve_j_date(root: Transaction_old, info):
     #     root.date.togregorian()
     #     return root.date.togregorian()
 
-    def resolve_shamse_date(self: Transaction, info):
+    def resolve_shamse_date(self: Transaction_old, info):
         return jdatetime.date.fromgregorian(date=self.date).strftime(format="%Y-%m-%d")
 
     class Meta:
-        model = Transaction
+        model = Transaction_old
         # exclude = ("created", "created_by", "modified", "modified_by")
         # exclude = ("created", "created_by", "modified", "modified_by")
 
@@ -154,8 +154,8 @@ class TarakoneshType(DjangoObjectType):
     id = graphene.ID(source='pk', required=True)
 
     class Meta:
-        model = Tarakonesh
-        fields = ('shakhs', 'Tarikh_Moaser', 'date_time', 'Mablagh', 'DarMelyoon', 'kind', 'description',)
+        model = Transaction
+        fields = ('profile', 'Tarikh_Moaser', 'date_time', 'amount', 'percent', 'kind', 'description',)
         filter_fields = {'shakhs__id': ['exact'],
                          'date_time': ['lte', 'gte', 'range'],
                          'kind__id': ['exact'], }
@@ -223,7 +223,7 @@ class Query(graphene.ObjectType):
 
         # if user.has_perm('can_view_transaction_for_all'):
         #     filter =
-        transactions = Transaction.objects.all()
+        transactions = Transaction_old.objects.all()
         return transactions
 
     @login_required
@@ -238,9 +238,9 @@ class Query(graphene.ObjectType):
     def resolve_tarakoneshs(self, info, **kwargs):
         current_user: User = info.context.user
         if current_user.is_superuser:
-            return Tarakonesh.objects.all()
+            return Transaction.objects.all()
         else:
-            tr = Tarakonesh.objects.filter(shakhs__user=current_user)
+            tr = Transaction.objects.filter(shakhs__user=current_user)
             return tr
 
     def resolve_transaction_kinds(root, info):
@@ -291,13 +291,13 @@ class CreateTransaction(graphene.Mutation):
 
     def mutate(self, info, user_id, date, amount, transact_type):
         user = User.objects.get(id=user_id)
-        tr = Transaction.objects.create(user=user, amount=amount, date=date, type=transact_type.value)
+        tr = Transaction_old.objects.create(user=user, amount=amount, date=date, type=transact_type.value)
 
         return CreateTransaction(transaction=tr)
 
 
 # class CreateTarakonesh(graphene.Mutation):
-#     tarakonesh: Tarakonesh = graphene.Field(type=Tarakonesh,description='ایجاد تراکنش مالی')
+#     tarakonesh: Transaction = graphene.Field(type=Transaction,description='ایجاد تراکنش مالی')
 #
 #     class Arguments:
 #         user

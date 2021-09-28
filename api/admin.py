@@ -23,10 +23,9 @@ class UserAdmin(UserAdmin):
     )
 
 
-@admin.register(models.Transaction)
+@admin.register(models.Transaction_old)
 class TransactionAdmin(admin.ModelAdmin):
-    list_display = ['__str__', 'date', 'shamse_date', 'ProfitCalculate', 'created']
-    ordering = ['created']
+    list_display = ['__str__', 'date', 'shamse_date',]
     list_filter = ['user']
 
     def save_model(self, request, obj, form, change):
@@ -44,7 +43,7 @@ class ProfitCalculateAdmin(admin.ModelAdmin):
 
 
 class TarakoneshInline(admin.TabularInline):
-    model = models.Tarakonesh
+    model = models.Transaction
 
     def has_change_permission(self, request, obj=None):
         return False
@@ -59,9 +58,9 @@ class AshkasAdmin(ImportExportModelAdmin):
     inlines = [TarakoneshInline]
 
 
-@admin.register(models.Tarakonesh)
+@admin.register(models.Transaction)
 class TarakoneshAdmin(ImportExportModelAdmin):
-    list_display = ['__str__', 'shakhs', 'tarikh', 'kind', 'Mablagh', ]
+    list_display = ['__str__', 'profile', 'tarikh', 'kind', 'amount', ]
     list_filter = ['kind', 'date_time', ]
     search_fields = ['shakhs__Lname', ]
 
@@ -74,4 +73,4 @@ class TransactionKindAdmin(ImportExportModelAdmin):
 admin.site.register(models.Post)
 admin.site.register(models.Pelekan)
 # admin.site.register(models.TransactionKind)
-# admin.site.register(models.Transaction)
+# admin.site.register(models.Transaction_old)

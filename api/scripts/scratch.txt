@@ -13,6 +13,6 @@ database URL : jdbc:sqlserver://localhost:1433
 %autoreload 2
 import api.models
 
-for t in api.models.Tarakonesh.objects.all():
+for t in api.models.Transaction.objects.all():
     t.g_Tarikh_Moaser_Moaref = api.models.tarikh_to_g(t.Tarikh_Moaser_Moaref)
     t.save()
