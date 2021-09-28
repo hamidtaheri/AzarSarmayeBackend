@@ -6,7 +6,8 @@ from api.models import Ashkhas, Tarakonesh, TransactionKind, sh2m, miladi_to_sha
 
 
 class TarakoneshTestClass(TestCase):
-    tk1 = TransactionKind.objects.get(id=1)
+    # tk1 = TransactionKind.objects.get(id=1)
+    tk1 = TransactionKind(id=1,title='سرمایه گزاری ', description='sarmayeghozari')
     a = Ashkhas(id=1, Fname='Morteza', Lname='Motahari')
 
     @classmethod
@@ -15,7 +16,7 @@ class TarakoneshTestClass(TestCase):
 
         cls.a.save()
         # 
-        # cls.tk1.save()
+        cls.tk1.save()
         pass
 
     def setUp(self):
