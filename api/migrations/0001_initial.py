@@ -50,7 +50,7 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('Fname', models.CharField(blank=True, max_length=100, null=True)),
-                ('Lname', models.CharField(blank=True, max_length=100, null=True)),
+                ('last_name', models.CharField(blank=True, max_length=100, null=True)),
                 ('CodeMeli', models.CharField(blank=True, max_length=10, null=True)),
                 ('Adress', models.CharField(blank=True, max_length=100, null=True)),
                 ('ShomareKart', models.CharField(blank=True, max_length=100, null=True)),
