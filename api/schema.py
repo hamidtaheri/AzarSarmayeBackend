@@ -1,13 +1,8 @@
-from django.contrib.auth.models import update_last_login
 from django.db.models import Avg, Count, Min, Sum
-import django_jalali.db.models
 from django.utils import timezone
 import graphene
 import graphql_jwt
-import jdatetime
 from django.contrib.auth import authenticate
-from django.core.exceptions import PermissionDenied
-from django_filters import OrderingFilter
 from graphene import relay, Enum, Int, Date
 from django.db.models import Q
 from graphene_django import DjangoObjectType
@@ -49,22 +44,6 @@ class UserType(DjangoObjectType):
         fields = ('id', 'first_name', 'last_name', 'username', 'email', 'profile', 'last_login')
 
 
-class TransactionType(DjangoObjectType):
-    shamse_date = graphene.String()
-
-    # def resolve_j_date(root: Transaction_old, info):
-    #     root.date.togregorian()
-    #     return root.date.togregorian()
-
-    def resolve_shamse_date(self: Transaction_old, info):
-        return jdatetime.date.fromgregorian(date=self.date).strftime(format="%Y-%m-%d")
-
-    class Meta:
-        model = Transaction_old
-        # exclude = ("created", "created_by", "modified", "modified_by")
-        # exclude = ("created", "created_by", "modified", "modified_by")
-
-
 class Transaction_Type_Enum(Enum):
     variz = "Variz"
     bardasht = "Bardasht"
@@ -88,7 +67,7 @@ class ProfitCalculateType(DjangoObjectType):
         return self
 
 
-class AshkhasType(DjangoObjectType):
+class ProfileType(DjangoObjectType):
     id = graphene.ID(source='pk', required=True)
     seporde = graphene.Float(source='seporde')  # اتصال به @property
     moarefi_shode_ha = graphene.List(of_type=MoarefiShodeHaType)
@@ -150,13 +129,13 @@ class AshkhasType(DjangoObjectType):
         return queryset
 
 
-class TarakoneshType(DjangoObjectType):
+class TransactionType(DjangoObjectType):
     id = graphene.ID(source='pk', required=True)
 
     class Meta:
         model = Transaction
         fields = ('profile', 'Tarikh_Moaser', 'date_time', 'amount', 'percent', 'kind', 'description',)
-        filter_fields = {'shakhs__id': ['exact'],
+        filter_fields = {'profile__id': ['exact'],
                          'date_time': ['lte', 'gte', 'range'],
                          'kind__id': ['exact'], }
         # exclude = ('tarikh')
@@ -184,9 +163,8 @@ class Query(graphene.ObjectType):
     # users = DjangoFilterConnectionField(UserType)
     users = graphene.List(UserType)
     last_logged_in_users = graphene.List(UserType, count=Int())
-    transactions = graphene.List(TransactionType)
-    ashkhas = DjangoFilterConnectionField(AshkhasType)
-    tarakoneshs = DjangoFilterConnectionField(TarakoneshType)
+    profiles = DjangoFilterConnectionField(ProfileType)
+    transactions = DjangoFilterConnectionField(TransactionType)
     transaction_kinds = graphene.List(TransactionKindType)
     mohasebe_sod = graphene.List(ProfitCalculateType,
                                  description='نمایش سود از تاریخ تا تاریخ برای کاربر',
@@ -227,7 +205,7 @@ class Query(graphene.ObjectType):
         return transactions
 
     @login_required
-    def resolve_ashkhas(self, info, **kwargs):
+    def resolve_profiles(self, info, **kwargs):
         current_user: User = info.context.user
         if current_user.is_superuser:
             return Profile.objects.all()
