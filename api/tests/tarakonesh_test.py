@@ -2,13 +2,16 @@ import datetime
 
 import pytz
 from django.test import TestCase
-from api.models import Ashkhas, Tarakonesh, TransactionKind, sh2m, miladi_to_shamsi
+
+import api.models
+from api.models import Profile, Transaction, TransactionKind, sh2m, miladi_to_shamsi
 
 
 class TarakoneshTestClass(TestCase):
-    # tk1 = TransactionKind.objects.get(id=1)
-    tk1 = TransactionKind(id=1,title='سرمایه گزاری ', description='sarmayeghozari')
-    a = Ashkhas(id=1, Fname='Morteza', Lname='Motahari')
+    tk1 = TransactionKind.objects.get(id=1)
+    a = Profile(id=1, first_name='Morteza', last_name='Motahari')
+    user = api.models.User()
+    user.username = "user"
 
     @classmethod
     def setUpTestData(cls):
@@ -17,6 +20,7 @@ class TarakoneshTestClass(TestCase):
         cls.a.save()
         # 
         cls.tk1.save()
+        cls.user.save()
         pass
 
     def setUp(self):
@@ -40,10 +44,12 @@ class TarakoneshTestClass(TestCase):
                 محاسبه سود برای فردی که ابتدای سال مبلغ ۵۰ میلیون تومان واریز کرده در بازه زمانی ابتدا تا انتهای اردیبهشت که ماه ۳۱ روزه است
         :return:
         """
-        t = Tarakonesh(Mablagh=500000000, g_Tarikh_Moaser=sh2m("1400/01/01"),
-                       date_time=datetime.datetime(2021, 0o1, 0o1, 1, tzinfo=pytz.UTC), DarMelyoon=70000)
+        t = Transaction(amount=500000000, effective_date=sh2m("1400/01/01"),
+                        date_time=datetime.datetime(2021, 0o1, 0o1, 1, tzinfo=pytz.UTC), percent=70000)
         t.kind = self.tk1
-        t.shakhs = self.a
+        t.profile = self.a
+        t.created_by = self.user
+        t.modified_by = self.user
         t.save()
         self.a.tarakoneshha.add(t)
         print(self.a.mohasebe_sod_old(az_date=sh2m("1400/02/01"), ta_date=sh2m("1400/02/31")))
@@ -58,10 +64,12 @@ class TarakoneshTestClass(TestCase):
                 محاسبه سود برای فردی که ابتدای سال مبلغ ۵۰ میلیون تومان واریز کرده در بازه زمانی ابتدا تا انتهای مهر که ماه ۳۰ روزه است
         :return:
         """
-        t = Tarakonesh(Mablagh=500000000, g_Tarikh_Moaser=sh2m("1400/01/01"),
-                       date_time=datetime.datetime(2021, 0o1, 0o1, 1, tzinfo=pytz.UTC), DarMelyoon=70000)
+        t = Transaction(amount=500000000, effective_date=sh2m("1400/01/01"),
+                        date_time=datetime.datetime(2021, 0o1, 0o1, 1, tzinfo=pytz.UTC), percent=70000)
         t.kind = self.tk1
-        t.shakhs = self.a
+        t.profile = self.a
+        t.created_by = self.user
+        t.modified_by = self.user
         t.save()
         self.a.tarakoneshha.add(t)
         print(self.a.mohasebe_sod_old(az_date=sh2m("1400/07/01"), ta_date=sh2m("1400/07/30")))
@@ -76,17 +84,21 @@ class TarakoneshTestClass(TestCase):
                 محاسبه سود برای فردی که ابتدای سال مبلغ ۵۰ میلیون تومان و ۱۵ اردیبهشت ۱۰ میلیون تومان واریز کرده در بازه زمانی ابتدا تا انتهای مهر که ماه ۳۰ روزه است
         :return:
         """
-        t1 = Tarakonesh(Mablagh=500000000, g_Tarikh_Moaser=sh2m("1400/01/01"),
-                        date_time=datetime.datetime(2021, 0o1, 0o1, 1, tzinfo=pytz.UTC), DarMelyoon=70000)
+        t1 = Transaction(amount=500000000, effective_date=sh2m("1400/01/01"),
+                         date_time=datetime.datetime(2021, 0o1, 0o1, 1, tzinfo=pytz.UTC), percent=70000)
 
-        t2 = Tarakonesh(Mablagh=100000000, g_Tarikh_Moaser=sh2m("1400/02/15"),
-                        date_time=datetime.datetime(2021, 0o1, 0o1, 1, tzinfo=pytz.UTC), DarMelyoon=70000)
+        t2 = Transaction(amount=100000000, effective_date=sh2m("1400/02/15"),
+                         date_time=datetime.datetime(2021, 0o1, 0o1, 1, tzinfo=pytz.UTC), percent=70000)
         t1.kind = self.tk1
-        t1.shakhs = self.a
+        t1.profile = self.a
+        t1.created_by = self.user
+        t1.modified_by = self.user
         t1.save()
 
         t2.kind = self.tk1
-        t2.shakhs = self.a
+        t2.profile = self.a
+        t2.created_by = self.user
+        t2.modified_by = self.user
         t2.save()
         self.a.tarakoneshha.add(t1)
         self.a.tarakoneshha.add(t2)
@@ -120,3 +132,4 @@ class TarakoneshTestClass(TestCase):
     def test_miladi_to_shamsi_1(self):
         miladi = datetime.date(2021, 12, 1)
         print(miladi_to_shamsi(miladi))
+        self.assertEqual("1400-09-10", miladi_to_shamsi(miladi))

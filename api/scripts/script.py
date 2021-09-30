@@ -21,7 +21,7 @@ import api.models
 
 # 1400/04601        2021-08-23
 # 1400/06/31        2021-09-22
-m = api.models.Ashkhas.objects.get(id=2)
+m = api.models.Profile.objects.get(id=2)
 print(m)
 az_date = datetime.date(year=2021, month=4, day=21)
 ta_date = datetime.date(year=2021, month=5, day=21)
