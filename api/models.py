@@ -153,6 +153,8 @@ class Profile(models.Model):
     charge_to_presenter = models.BooleanField(blank=True, null=True)
     self_presenter = models.BooleanField(blank=True, null=True)
     tel = models.CharField(max_length=20, blank=True, null=True)
+    mobile1 = models.CharField(max_length=11, blank=True, null=True)
+    mobile2 = models.CharField(max_length=11, blank=True, null=True)
     presenter_2 = models.IntegerField(blank=True, null=True)
     presenter_percent_2 = models.IntegerField(blank=True, null=True)
     self_presenter_2 = models.BooleanField(blank=True, null=True)

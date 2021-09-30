@@ -1,9 +1,9 @@
-from datetime import timezone
-
 import graphql_jwt
+from django.contrib.auth import authenticate
+from django.utils import timezone
 from graphql_jwt.exceptions import PermissionDenied
+from graphql_jwt.shortcuts import get_token
 
-from api.models import User, Transaction_old
 from api.schema.query import *
 
 

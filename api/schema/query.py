@@ -84,10 +84,14 @@ class ProfileType(DjangoObjectType):
 
     class Meta:
         model = Profile
-        fields = ('id', 'user', 'first_name', 'last_name')
+        fields = (
+            'id', 'user', 'first_name', 'last_name', 'code_meli', 'adress', 'shomare_kart', 'shomare_hesab',
+            'description', 'tel', 'mobile1')
         filter_fields = {
             'id': ['exact'],
             'last_name': ['exact', 'icontains', 'istartswith'],
+            'code_meli': ['exact', 'icontains', 'istartswith'],
+            'mobile1': ['exact', 'icontains', 'istartswith'],
         }
         interfaces = (relay.Node,)
 
@@ -97,7 +101,8 @@ class ProfileType(DjangoObjectType):
         return Profile.objects.filter(presenter=self).all()
 
     def resolve_moaref(self: Profile, info):
-        return f'{self.presenter.first_name} {self.presenter.last_name}'
+        moaref = self.presenter or ''
+        return moaref
 
     def resolve_mohasebe_sod(self: Profile, info, az_date, ta_date):
         current_user: User = info.context.user

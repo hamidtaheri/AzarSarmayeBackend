@@ -1,5 +1,5 @@
-from pathlib import Path
 import os
+from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -8,6 +8,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # DEBUG = True
 
 import environ
+
 env = environ.Env(
     # set casting, default value
     DEBUG=(bool, False)
@@ -26,6 +27,7 @@ SECRET_KEY = '-7_0j7bhdb$dd#&gm*qv^06i!3$8rtw9p4^bdkrpi^p$hav6e'
 #     'default': env.db('DATABASE_URL'),
 # }
 import dj_database_url
+
 DATABASES = {'default': dj_database_url.config()}
 
 ALLOWED_HOSTS = []
@@ -143,6 +145,8 @@ AUTHENTICATION_BACKENDS = [
     'graphql_jwt.backends.JSONWebTokenBackend',
     'django.contrib.auth.backends.ModelBackend',
 ]
+# authorization
+# {"authorization":"jwt token"}
 AUTH_USER_MODEL = 'api.User'
 LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = '/api/'
