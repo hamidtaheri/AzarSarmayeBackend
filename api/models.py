@@ -23,6 +23,9 @@ class User(AbstractUser):
     def __str__(self):
         return f'{self.username}'
 
+    permissions = (
+        ("can_add_user", "میتواند کاربر جدید ایجاد کند"),
+    )
 
 class TransactionKind(models.Model):
     title = models.CharField(verbose_name='نوع تراکنش', max_length=30)
@@ -158,6 +161,17 @@ class Profile(models.Model):
     presenter_2 = models.IntegerField(blank=True, null=True)
     presenter_percent_2 = models.IntegerField(blank=True, null=True)
     self_presenter_2 = models.BooleanField(blank=True, null=True)
+
+    class Meta:
+        verbose_name = "پروفایل"
+        verbose_name_plural = "پروفایل"
+
+        permissions = (
+            ("can_add_profile", "ایجاد پروفایل"),
+            ("can_edit_profile_for_self", "ویرایش پروفایل خودش"),
+            ("can_edit_profile_for_all", "ویرایش پروفایل دیگران"),
+            ("can_delete_profile_for_all", "حذف پروفایل"),
+        )
 
     def tarakonesh_sum_ta(self, kind: int, ta: datetime = None, ) -> float:
         if ta:
