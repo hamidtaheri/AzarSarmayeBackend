@@ -1,16 +1,11 @@
-from django.db.models import Avg, Count, Min, Sum
-from django.utils import timezone
 import graphene
-import graphql_jwt
-from django.contrib.auth import authenticate
-from graphene import relay, Enum, Int, Date
 from django.db.models import Q
+from graphene import relay, Enum, Int, Date
 from graphene_django import DjangoObjectType
 from graphene_django.filter import DjangoFilterConnectionField
 from graphql_jwt.decorators import login_required, staff_member_required
-from graphql_jwt.shortcuts import get_token
 
-from .models import *
+from api.models import *
 
 
 class count_sum_tarakonesh_ConnectionBase(relay.Connection):
@@ -36,6 +31,10 @@ class PostType(DjangoObjectType):
 
 
 class UserType(DjangoObjectType):
+    """
+    me
+    """
+
     class Meta:
         model = User
         # exclude = ("password",)
@@ -52,7 +51,7 @@ class Transaction_Type_Enum(Enum):
 class MoarefiShodeHaType(DjangoObjectType):
     class Meta:
         model = Profile
-        exclude = ('seporde', 'tarakoneshha', 'presenter',)
+        fields = ('first_name', 'last_name')
 
 
 class ProfitCalculateType(DjangoObjectType):
@@ -83,22 +82,22 @@ class ProfileType(DjangoObjectType):
         ta_date=Date(required=True, description='تا تاریخ'),
     )
 
-    # @staff_member_required
-    def resolve_moarefi_shode_ha(self: Profile, info):
-        current_user: User = info.context.user
-        return Profile.objects.filter(Moaref_Tbl_Ashkhas_id=self).all()
-
-    def resolve_moaref(self: Profile, info):
-        return f'{self.presenter.first_name} {self.presenter.last_name}'
-
     class Meta:
         model = Profile
-        exclude = ('self_presenter_2', 'presenter',)
+        fields = ('id', 'user', 'first_name', 'last_name')
         filter_fields = {
             'id': ['exact'],
             'last_name': ['exact', 'icontains', 'istartswith'],
         }
         interfaces = (relay.Node,)
+
+    # @staff_member_required
+    def resolve_moarefi_shode_ha(self: Profile, info):
+        current_user: User = info.context.user
+        return Profile.objects.filter(presenter=self).all()
+
+    def resolve_moaref(self: Profile, info):
+        return f'{self.presenter.first_name} {self.presenter.last_name}'
 
     def resolve_mohasebe_sod(self: Profile, info, az_date, ta_date):
         current_user: User = info.context.user
@@ -235,57 +234,3 @@ class Query(graphene.ObjectType):
 
         r, _ = user.mohasebe_sod_old(az_date=az_date, ta_date=ta_date)
         return r
-
-
-# ----------------
-
-class Login(graphene.Mutation):
-    user = graphene.Field(UserType)
-    token = graphene.String()
-
-    class Arguments:
-        username = graphene.String(required=True)
-        password = graphene.String(required=True)
-
-    def mutate(self, info, username, password):
-        user = authenticate(username=username, password=password)
-        if user is None:
-            raise PermissionDenied()
-        else:
-            user.last_login = timezone.now()
-            user.save(update_fields=['last_login'])
-            token = get_token(user)
-        return Login(user=user, token=token)
-
-
-class CreateTransaction(graphene.Mutation):
-    transaction = graphene.Field(TransactionType)
-
-    class Arguments:
-        user_id = graphene.Int(required=True, description='کاربر تراکنش')
-        date = graphene.Date(required=True)
-        amount = graphene.Int(required=True)
-        transact_types = Transaction_Type_Enum(required=True)
-
-    def mutate(self, info, user_id, date, amount, transact_type):
-        user = User.objects.get(id=user_id)
-        tr = Transaction_old.objects.create(user=user, amount=amount, date=date, type=transact_type.value)
-
-        return CreateTransaction(transaction=tr)
-
-
-# class CreateTarakonesh(graphene.Mutation):
-#     tarakonesh: Transaction = graphene.Field(type=Transaction,description='ایجاد تراکنش مالی')
-#
-#     class Arguments:
-#         user
-
-
-class Mutation(graphene.ObjectType):
-    login = Login.Field()
-    create_transaction = CreateTransaction.Field()
-    # create_tarakonesh = CreateTarakonesh.Field()
-    token_auth = graphql_jwt.ObtainJSONWebToken.Field()
-    delete_token = graphql_jwt.Revoke.Field()
-    verify_token = graphql_jwt.Verify.Field()
-    refresh_token = graphql_jwt.Refresh.Field()
