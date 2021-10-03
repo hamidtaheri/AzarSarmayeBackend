@@ -2,13 +2,12 @@ import datetime
 
 import jdatetime
 from crum import get_current_user
+from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AbstractUser
 from django.core.exceptions import PermissionDenied
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.db.models import QuerySet, Sum
-from django_jalali.db import models as jmodels
-from django.contrib.auth import get_user_model
 
 
 class MyException(Exception):
@@ -24,6 +23,9 @@ class User(AbstractUser):
     def __str__(self):
         return f'{self.username}'
 
+    permissions = (
+        ("can_add_user", "میتواند کاربر جدید ایجاد کند"),
+    )
 
 class TransactionKind(models.Model):
     title = models.CharField(verbose_name='نوع تراکنش', max_length=30)
@@ -154,9 +156,22 @@ class Profile(models.Model):
     charge_to_presenter = models.BooleanField(blank=True, null=True)
     self_presenter = models.BooleanField(blank=True, null=True)
     tel = models.CharField(max_length=20, blank=True, null=True)
+    mobile1 = models.CharField(max_length=11, blank=True, null=True)
+    mobile2 = models.CharField(max_length=11, blank=True, null=True)
     presenter_2 = models.IntegerField(blank=True, null=True)
     presenter_percent_2 = models.IntegerField(blank=True, null=True)
     self_presenter_2 = models.BooleanField(blank=True, null=True)
+
+    class Meta:
+        verbose_name = "پروفایل"
+        verbose_name_plural = "پروفایل"
+
+        permissions = (
+            ("can_add_profile", "ایجاد پروفایل"),
+            ("can_edit_profile_for_self", "ویرایش پروفایل خودش"),
+            ("can_edit_profile_for_all", "ویرایش پروفایل دیگران"),
+            ("can_delete_profile_for_all", "حذف پروفایل"),
+        )
 
     def tarakonesh_sum_ta(self, kind: int, ta: datetime = None, ) -> float:
         if ta:
@@ -216,7 +231,7 @@ class Profile(models.Model):
 
 
 class Transaction(models.Model):
-    profile = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name='tarakoneshha')
+    profile = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name='transactions')
     tarikh = models.CharField(max_length=10)
     date = models.DateField(null=True, blank=True, )
     Tarikh_Moaser = models.CharField(max_length=10)
@@ -225,7 +240,7 @@ class Transaction(models.Model):
     presenter_effective_date = models.DateField(null=True, blank=True)
     date_time = models.DateTimeField()
     amount = models.BigIntegerField()
-    kind = models.ForeignKey(TransactionKind, on_delete=models.CASCADE, related_name='tarakoneshha')
+    kind = models.ForeignKey(TransactionKind, on_delete=models.CASCADE, related_name='transactions')
     NahveyePardakht = models.CharField(max_length=40, blank=True, null=True)
     description = models.CharField(max_length=100, blank=True, null=True)
     Tbl_Pardakht_List_id = models.IntegerField(blank=True, null=True)
@@ -234,10 +249,10 @@ class Transaction(models.Model):
     # logging fields
     created = models.DateTimeField(auto_now_add=True, editable=False)
     created_by = models.ForeignKey(get_user_model(), on_delete=models.DO_NOTHING, blank=False, null=False,
-                                   related_name='create_by', editable=False)
+                                   related_name='transactions_create_by', editable=False)
     modified = models.DateTimeField(auto_now=True, editable=False)
     modified_by = models.ForeignKey(get_user_model(), on_delete=models.DO_NOTHING, blank=False, null=False,
-                                    related_name='modified_by', editable=False)
+                                    related_name='transactions_modified_by', editable=False)
 
     def __str__(self):
         return f'{self.id} {self.profile.last_name}'

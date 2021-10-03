@@ -51,7 +51,7 @@ class TarakoneshTestClass(TestCase):
         t.created_by = self.user
         t.modified_by = self.user
         t.save()
-        self.a.tarakoneshha.add(t)
+        self.a.transactions.add(t)
         print(self.a.mohasebe_sod_old(az_date=sh2m("1400/02/01"), ta_date=sh2m("1400/02/31")))
         lst, s = self.a.mohasebe_sod_old(az_date=sh2m("1400/02/01"), ta_date=sh2m("1400/02/31"))
         self.assertEqual(len(lst), 1)
@@ -71,7 +71,7 @@ class TarakoneshTestClass(TestCase):
         t.created_by = self.user
         t.modified_by = self.user
         t.save()
-        self.a.tarakoneshha.add(t)
+        self.a.transactions.add(t)
         print(self.a.mohasebe_sod_old(az_date=sh2m("1400/07/01"), ta_date=sh2m("1400/07/30")))
         lst, s = self.a.mohasebe_sod_old(az_date=sh2m("1400/07/01"), ta_date=sh2m("1400/07/30"))
         self.assertEqual(len(lst), 1)
@@ -100,8 +100,8 @@ class TarakoneshTestClass(TestCase):
         t2.created_by = self.user
         t2.modified_by = self.user
         t2.save()
-        self.a.tarakoneshha.add(t1)
-        self.a.tarakoneshha.add(t2)
+        self.a.transactions.add(t1)
+        self.a.transactions.add(t2)
         print(self.a.mohasebe_sod_old(az_date=sh2m("1400/02/01"), ta_date=sh2m("1400/02/31")))
         lst, s = self.a.mohasebe_sod_old(az_date=sh2m("1400/02/01"), ta_date=sh2m("1400/02/31"))
         self.assertEqual(len(lst), 2)
