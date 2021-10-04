@@ -1,9 +1,12 @@
 import datetime
+from random import randrange
 
 import jdatetime
 from crum import get_current_user
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AbstractUser
+from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
+from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import PermissionDenied
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
@@ -17,6 +20,11 @@ class MyException(Exception):
 day_in_month = 30
 
 
+def get_storage_path(instance, filename):
+    # if instance.content_type.model == 'order':
+    return f"{instance.content_type.model}/{instance.object_id}_{randrange(100, 999)}_{filename}"
+
+
 class User(AbstractUser):
     mobile = models.CharField('تلفن همراه', max_length=11, blank=True, null=True, help_text='شماره موبایل')
 
@@ -26,6 +34,45 @@ class User(AbstractUser):
     permissions = (
         ("can_add_user", "میتواند کاربر جدید ایجاد کند"),
     )
+
+
+class ImageKind(models.Model):
+    name = models.CharField(max_length=100, default='')
+    description = models.TextField(null=True, blank=True)
+
+    def __str__(self):
+        return self.name
+
+
+class Image(models.Model):
+    """
+    کلاسی که برای همه تصاویر در سایر کلاس ها استفاده میشود.
+    """
+    description = models.CharField(max_length=500, null=True, blank=True)
+    image = models.ImageField(upload_to=get_storage_path)
+    kind = models.ForeignKey(ImageKind, on_delete=models.SET_NULL, null=True, blank=True)
+
+    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
+    object_id = models.PositiveIntegerField()
+    content_object = GenericForeignKey()
+
+    # logging fields
+    created = models.DateTimeField(auto_now_add=True, editable=False)
+    created_by = models.ForeignKey(get_user_model(), on_delete=models.DO_NOTHING, blank=True, null=True,
+                                   related_name='image_create_by', editable=False)
+    modified = models.DateTimeField(auto_now=True, editable=False)
+    modified_by = models.ForeignKey(get_user_model(), on_delete=models.DO_NOTHING, blank=True, null=True,
+                                    related_name='image_modified_by', editable=False)
+
+    class Meta:
+        verbose_name = 'تصویر'
+        verbose_name_plural = 'تصویر ها'
+
+    def __str__(self):
+        image_type = ContentType.objects.get(app_label='api', model=self.content_type.model)
+        image_type.get_object_for_this_type(id=self.object_id)
+        return f"{image_type.get_object_for_this_type(id=self.object_id)}"
+
 
 class TransactionKind(models.Model):
     title = models.CharField(verbose_name='نوع تراکنش', max_length=30)
@@ -161,6 +208,7 @@ class Profile(models.Model):
     presenter_2 = models.IntegerField(blank=True, null=True)
     presenter_percent_2 = models.IntegerField(blank=True, null=True)
     self_presenter_2 = models.BooleanField(blank=True, null=True)
+    images = GenericRelation(Image, related_name='profile_images')
 
     class Meta:
         verbose_name = "پروفایل"
@@ -230,12 +278,20 @@ class Profile(models.Model):
         return f'{self.first_name}   {self.last_name}'
 
 
+class ProfileImageGallery(models.Model):
+    image_kind = models.ForeignKey(ImageKind, on_delete=models.SET_NULL, null=True, blank=True)
+    image = GenericRelation(Image, related_name='profile_images')
+    profile = models.ForeignKey(Profile, on_delete=models.SET_NULL, related_name='profile_images', null=True,
+                                blank=True)
+
+
 class Transaction(models.Model):
     profile = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name='transactions')
     tarikh = models.CharField(max_length=10)
     date = models.DateField(null=True, blank=True, )
     Tarikh_Moaser = models.CharField(max_length=10)
     effective_date = models.DateField(null=True, blank=True)
+    expire_date = models.DateField(null=True, blank=True, verbose_name='تاریخ انتهای قرارداد')
     Tarikh_Moaser_Moaref = models.CharField(max_length=10)
     presenter_effective_date = models.DateField(null=True, blank=True)
     date_time = models.DateTimeField()

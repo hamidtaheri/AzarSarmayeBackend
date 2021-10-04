@@ -86,7 +86,7 @@ class ProfileType(DjangoObjectType):
         model = Profile
         fields = (
             'id', 'user', 'first_name', 'last_name', 'code_meli', 'adress', 'shomare_kart', 'shomare_hesab',
-            'description', 'tel', 'mobile1')
+            'description', 'tel', 'mobile1', 'transactions', )
         filter_fields = {
             'id': ['exact'],
             'last_name': ['exact', 'icontains', 'istartswith'],
@@ -157,6 +157,12 @@ class TransactionKindType(DjangoObjectType):
         fields = ['id', 'title']
         # exclude = ('id',)
         filter_fields = {'id': ['exact']}
+
+
+class ImageType(DjangoObjectType):
+    class Meta:
+        model = Image
+        fields = ['id', 'description', 'kind', ]
 
 
 class Query(graphene.ObjectType):

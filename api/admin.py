@@ -1,8 +1,10 @@
 from django.contrib import admin, messages
 from django.contrib.auth.admin import UserAdmin
+from django.contrib.contenttypes.admin import GenericStackedInline, GenericTabularInline
 from django.utils.translation import ugettext_lazy as _
 # you need import this for adding jalali calander widget
 import django_jalali.admin as jadmin
+from django.views import generic
 from import_export.admin import ImportExportModelAdmin
 
 from . import models
@@ -25,7 +27,7 @@ class UserAdmin(UserAdmin):
 
 @admin.register(models.Transaction_old)
 class TransactionAdmin(admin.ModelAdmin):
-    list_display = ['__str__', 'date', 'shamse_date',]
+    list_display = ['__str__', 'date', 'shamse_date', ]
     list_filter = ['user']
 
     def save_model(self, request, obj, form, change):
@@ -49,13 +51,27 @@ class TarakoneshInline(admin.TabularInline):
         return False
 
 
+class ImageTabularInlineAdmin(GenericStackedInline):
+    model = models.Image
+    ct_field = "content_type"
+    ct_fk_field = "object_id"
+
+
+class ProfileImageGalleryInline(admin.StackedInline):
+    model = models.ProfileImageGallery
+    inlines = [ImageTabularInlineAdmin]
+
+
+
 @admin.register(models.Profile)
 class AshkasAdmin(ImportExportModelAdmin):
-    list_display = ['id', '__str__', 'presenter', 'percent',]
+    list_display = ['id', '__str__', 'presenter', 'percent', ]
     list_filter = ['presenter', ]
     search_fields = ['id', 'last_name']
     ordering = ['id']
-    inlines = [TarakoneshInline]
+    # inlines = [ProfileImageGalleryInline]
+    inlines = [ImageTabularInlineAdmin]
+
 
 
 @admin.register(models.Transaction)
@@ -71,6 +87,8 @@ class TransactionKindAdmin(ImportExportModelAdmin):
 
 
 admin.site.register(models.Post)
+admin.site.register(models.ImageKind)
+admin.site.register(models.ProfileImageGallery)
 admin.site.register(models.Pelekan)
 # admin.site.register(models.TransactionKind)
 # admin.site.register(models.Transaction_old)
