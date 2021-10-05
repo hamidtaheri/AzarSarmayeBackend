@@ -153,3 +153,5 @@ LOGIN_REDIRECT_URL = '/api/'
 LOGOUT_URL = 'logout'
 
 HAVE_NOT_PERMISSION = 'you have not permission !!'
+
+IMPORT_EXPORT_SKIP_ADMIN_LOG = True

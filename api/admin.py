@@ -62,7 +62,6 @@ class ProfileImageGalleryInline(admin.StackedInline):
     inlines = [ImageTabularInlineAdmin]
 
 
-
 @admin.register(models.Profile)
 class AshkasAdmin(ImportExportModelAdmin):
     list_display = ['id', '__str__', 'presenter', 'percent', ]
@@ -71,7 +70,6 @@ class AshkasAdmin(ImportExportModelAdmin):
     ordering = ['id']
     # inlines = [ProfileImageGalleryInline]
     inlines = [ImageTabularInlineAdmin]
-
 
 
 @admin.register(models.Transaction)
