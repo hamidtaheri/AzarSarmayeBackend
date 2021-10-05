@@ -66,11 +66,18 @@ class ProfitCalculateType(DjangoObjectType):
         return self
 
 
+class ImageType(DjangoObjectType):
+    class Meta:
+        model = Image
+        fields = ['id', 'description', 'kind', 'image', ]
+
+
 class ProfileType(DjangoObjectType):
     id = graphene.ID(source='pk', required=True)
     seporde = graphene.Float(source='seporde')  # اتصال به @property
     moarefi_shode_ha = graphene.List(of_type=MoarefiShodeHaType)
     moaref = graphene.String(description='معرف')
+    images = graphene.List(of_type=ImageType)
     mohasebe_sod = graphene.List(ProfitCalculateType,
                                  description='نمایش جزیات محاسبه سود از تاریخ تا تاریخ برای کاربر جاری',
                                  az_date=Date(required=True, description='از تاریخ'),
@@ -86,7 +93,7 @@ class ProfileType(DjangoObjectType):
         model = Profile
         fields = (
             'id', 'user', 'first_name', 'last_name', 'code_meli', 'adress', 'shomare_kart', 'shomare_hesab',
-            'description', 'tel', 'mobile1', 'transactions', )
+            'description', 'tel', 'mobile1', 'transactions', 'images')
         filter_fields = {
             'id': ['exact'],
             'last_name': ['exact', 'icontains', 'istartswith'],
@@ -103,6 +110,15 @@ class ProfileType(DjangoObjectType):
     def resolve_moaref(self: Profile, info):
         moaref = self.presenter or ''
         return moaref
+
+    def resolve_images(self, info):
+        current_user: User = info.context.user
+        prof: Profile = self
+        # imgs = Profile.images
+        ct = ContentType.objects.get_for_model(self)
+
+        images = Image.objects.filter(content_type=ct, object_id=self.id)
+        return images
 
     def resolve_mohasebe_sod(self: Profile, info, az_date, ta_date):
         current_user: User = info.context.user
@@ -157,12 +173,6 @@ class TransactionKindType(DjangoObjectType):
         fields = ['id', 'title']
         # exclude = ('id',)
         filter_fields = {'id': ['exact']}
-
-
-class ImageType(DjangoObjectType):
-    class Meta:
-        model = Image
-        fields = ['id', 'description', 'kind', ]
 
 
 class Query(graphene.ObjectType):
