@@ -27,18 +27,6 @@ class TarakoneshTestClass(TestCase):
         print("setUp: Run once for every test method to setup clean data.")
         pass
 
-    def test_false_is_false(self):
-        print("Method: test_false_is_false.")
-        self.assertFalse(False)
-
-    # def test_false_is_true(self):
-    #     print("Method: test_false_is_true.")
-    #     self.assertTrue(False)
-
-    def test_one_plus_one_equals_two(self):
-        print("Method: test_one_plus_one_equals_two.")
-        self.assertEqual(1 + 1, 2)
-
     def test_1_tarakonesh_ordibehest_31(self):
         """
                 محاسبه سود برای فردی که ابتدای سال مبلغ ۵۰ میلیون تومان واریز کرده در بازه زمانی ابتدا تا انتهای اردیبهشت که ماه ۳۱ روزه است

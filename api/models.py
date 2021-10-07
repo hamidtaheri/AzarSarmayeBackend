@@ -18,6 +18,7 @@ class MyException(Exception):
 
 
 day_in_month = 30
+day_for_calculate_presenter_profit = 180  # تعدادروزی که پس از آن سود معرفی به معرف تعلق نمیگیرد
 
 
 def get_storage_path(instance, filename):
@@ -195,7 +196,7 @@ class Profile(models.Model):
     shomare_kart = models.CharField(max_length=100, blank=True, null=True)
     shomare_hesab = models.CharField(max_length=100, blank=True, null=True)
     presenter = models.ForeignKey('self', verbose_name='معرف', blank=True, null=True,
-                                  on_delete=models.CASCADE, related_name='+')  # moarefi_shode_ha
+                                  on_delete=models.CASCADE, related_name='moarefi_shode_ha')  # moarefi_shode_ha
     percent = models.IntegerField(blank=True, null=True)
     presenter_percent = models.IntegerField(blank=True, null=True)
     get_profit = models.BooleanField(blank=True, null=True)
@@ -227,15 +228,11 @@ class Profile(models.Model):
                 Sum('amount'))
         else:
             tr = Transaction.objects.filter(profile=self, kind=kind).aggregate(Sum('amount'))
-        try:
-            r = tr['amount__sum']
-            if r is None:
-                r = 0
-        except IndexError:
-            r = 0
+
+        r = tr['amount__sum'] or 0
         return r
 
-    def mojodi_ta(self, ta: datetime.date = None) -> float:
+    def mojodi_ta(self, ta: datetime.date = datetime.date.today()) -> float:
         """
         موجودی حساب یعنی مجموع سرمایه گزاری ها و سودها منهای برداشت سود و مرجوعی
         :param ta:  تا تاریخ اگر تاریخ
@@ -249,6 +246,26 @@ class Profile(models.Model):
         variz_sod = self.tarakonesh_sum_ta(kind=3, ta=ta)  # واریز سود
         bardasht_sod = self.tarakonesh_sum_ta(kind=4, ta=ta)  # برداشت سود
         variz_sod_moarefi = self.tarakonesh_sum_ta(kind=5, ta=ta)  # واریز سود معرفی
+        r = (seporde + variz_sod + variz_sod_moarefi) - (marjo + bardasht_sod)
+        return r
+
+    def mojodi_moarefishodeha_ta(self, ta_date: datetime.date = datetime.date.today()) -> float:
+        """
+        محاسبه جمع موجودی معرفی شده ها در بازه از n روز پیش تاکنون
+        n= day_for_calculate_presenter_profit
+        """
+        transactions: QuerySet[Transaction] = Transaction.objects.filter(profile__presenter=self,
+                                                                         effective_date__lte=ta_date,
+                                                                         effective_date__gte=
+                                                                         ta_date - datetime.timedelta(
+                                                                             day_for_calculate_presenter_profit)
+                                                                         )
+        seporde = transactions.filter(kind=1).aggregate(seporde=Sum('amount'))['seporde'] or 0
+        marjo = transactions.filter(kind=2).aggregate(marjo=Sum('amount'))['marjo'] or 0
+        variz_sod = transactions.filter(kind=3).aggregate(variz_sod=Sum('amount'))['variz_sod'] or 0
+        bardasht_sod = transactions.filter(kind=4).aggregate(bardasht_sod=Sum('amount'))['bardasht_sod'] or 0
+        variz_sod_moarefi = transactions.filter(kind=5).aggregate(variz_sod_moarefi=Sum('amount'))[
+                                'variz_sod_moarefi'] or 0
         r = (seporde + variz_sod + variz_sod_moarefi) - (marjo + bardasht_sod)
         return r
 
@@ -318,29 +335,46 @@ class Transaction(models.Model):
 
     def percent_calculator(self) -> float:
         """
-        محاسبه درشد سود بر اساس پلکان
+        محاسبه درصد سود سرمایه گزاری بر اساس پلکان
         """
         if self.effective_date < datetime.date(2021, 0o6, 22):  # 1400/04/01
             return self.percent
         else:
             mojodi = self.profile.mojodi_ta(ta=self.effective_date)
-            dar_melyon = Pelekan.objects.get(az__lte=mojodi, ta__gte=mojodi).percent
+            dar_melyon = Pelekan.objects.get(id=1, az__lte=mojodi, ta__gte=mojodi).percent
             return dar_melyon
+
+    def presenter_percent_calculator(self, ta_date: datetime.date) -> float:
+        """
+        محاسبه درصد سود معرف بر اساس پلکان
+        """
+        # if self.effective_date < datetime.date(2021, 0o6, 22):  # 1400/04/01
+        #     return self.percent
+        # else:
+        mojodi = self.profile.mojodi_ta(ta=self.effective_date)
+        mojodi_moarefishodeha = self.profile.mojodi_moarefishodeha_ta(ta_date=ta_date)
+        mojodi_kol = mojodi + mojodi_moarefishodeha
+        percent = Pelekan.objects.get(id=2, az__lte=mojodi_kol, ta__gte=mojodi_kol).percent
+        return percent
 
     def profit_calculator(self, az_date: datetime.date, ta_date: datetime.date):
         """
         محاسبه سود تراکنش
         """
         start_date: datetime.date = az_date
-        end_date: datetime.date = ta_date  # اگر بخشی از این واریزی پیش از پایان دوره مرجوع گردد سود تعداد روز شامل را دریافت میکند نه تا پایان دوره را. این فرض در حال حاظر ممکن نیست
+        end_date: datetime.date = ta_date
         if self.effective_date > az_date:
             start_date = self.effective_date  # این واریزی در بین دوره محاسبه سود انجام شده نه از پیش از آن بنابراین سود معادل تعداد روز شامل را در یافت میکند
+        # تا زمان درست شدن تاریخ انقضای تراکنش ها این شرط فیر فعال میگردد
+        # if self.expire_date < ta_date:
+        #     end_date = self.expire_date  # تاریخ پایان قرارداد این واریزی پیش از پایان بازه محاسبه سود است بنابراین سود تعداد روز شامل را دریافت میکند
 
         # sod = tr.percent  # نحوه محاسبه سود؟؟؟؟؟؟؟؟ اینجاست
         sod = self.percent_calculator()  # نحوه محاسبه سود؟؟؟؟؟؟؟؟ اینجاست
         mohasebe_sod: ProfitCalculate = ProfitCalculate()
         mohasebe_sod.transaction = self
-        mohasebe_sod.user = self.profile.user
+        mohasebe_sod.Profile = self.profile
+        mohasebe_sod.kind_id = 1
         mohasebe_sod.date_from = start_date
         mohasebe_sod.date_to = end_date
         mohasebe_sod.days = (end_date - start_date).days + 1  # فاصله روز شروع تا پایان +۱ شد
@@ -349,13 +383,56 @@ class Transaction(models.Model):
         mohasebe_sod.calculated_amount = round(self.amount * (sod / 10000000) * (mohasebe_sod.days / day_in_month), 0)
         return mohasebe_sod
 
+    def presenter_profit_calculator(self, az_date: datetime.date, ta_date: datetime.date):
+        """
+        محاسبه سود معرف
+        """
+        presenter = Profile.objects.get(id=self.profile.presenter.id)
+        start_date: datetime.date = az_date
+        end_date: datetime.date = ta_date
+        if self.effective_date > az_date:
+            start_date = self.effective_date  # این واریزی در بین دوره محاسبه سود انجام شده نه از پیش از آن بنابراین سود معادل تعداد روز شامل را در یافت میکند
+        # تا زمان درست شدن تاریخ انقضای تراکنش ها این شرط فیر فعال شده و شرط زیر جایگزین میگردد
+        # if self.expire_date < ta_date:
+        #     end_date = self.expire_date  # تاریخ پایان قرارداد این واریزی پیش از پایان بازه محاسبه سود است بنابراین سود تعداد روز شامل را دریافت میکند
+
+        if self.effective_date + datetime.timedelta(day_for_calculate_presenter_profit) < ta_date:
+            end_date = self.effective_date + datetime.timedelta(
+                day_for_calculate_presenter_profit)  # تاریخ پایان قرارداد این واریزی پیش از پایان بازه محاسبه سود است بنابراین سود تعداد روز شامل را دریافت میکند
+        if self.effective_date + datetime.timedelta(day_for_calculate_presenter_profit) < az_date:
+            end_date = start_date  # اگر تاریخ موثر قدیمی تر از بازه تعریف شده برای دریافت سود معرف بود به معرفی سودی تعلق نمیگیرد
+
+        # sod = tr.percent  # نحوه محاسبه سود؟؟؟؟؟؟؟؟ اینجاست
+        sod = self.presenter_percent_calculator(ta_date=ta_date)  # نحوه محاسبه سود؟؟؟؟؟؟؟؟ اینجاست
+        mohasebe_sod: ProfitCalculate = ProfitCalculate()
+        mohasebe_sod.transaction = self
+        mohasebe_sod.Profile = presenter
+        mohasebe_sod.kind_id = 2
+        mohasebe_sod.date_from = start_date
+        mohasebe_sod.date_to = end_date
+        mohasebe_sod.days = (end_date - start_date).days + 1  # فاصله روز شروع تا پایان +۱ شد
+        mohasebe_sod.amount = self.amount
+        mohasebe_sod.percent = sod
+        mohasebe_sod.calculated_amount = round(self.amount * (sod / 10000000) * (mohasebe_sod.days / day_in_month), 0)
+        mohasebe_sod.description = f'محاسبه سود معرفی {self.profile}'
+        return mohasebe_sod
+
+
+class ProfitKind(models.Model):
+    name = models.CharField(max_length=20, null=True, blank=True)
+
+    def __str__(self):
+        return self.name
+
 
 class ProfitCalculate(models.Model):
     """
     محاسبه سود
     """
-    user = models.ForeignKey(get_user_model(), verbose_name='کاربر', on_delete=models.DO_NOTHING,
-                             related_name='ProfitCalculates', blank=False, null=False)
+    # user = models.ForeignKey(get_user_model(), verbose_name='کاربر', on_delete=models.DO_NOTHING,
+    #                          related_name='ProfitCalculates', blank=False, null=False)
+    Profile = models.ForeignKey(Profile, on_delete=models.DO_NOTHING, related_name='profiteCalculates', null=False,
+                                blank=False)
     date_from = models.DateField(verbose_name='از تاریخ', blank=False, null=False)
     date_to = models.DateField(verbose_name='تا تاریخ', blank=True, null=True)
     days = models.PositiveIntegerField(verbose_name='تعداد روز', blank=True, null=True)
@@ -365,13 +442,16 @@ class ProfitCalculate(models.Model):
     # تراکنشی که این رکورد بر اساس آن ساخته شده
     transaction = models.OneToOneField(to=Transaction, verbose_name='تراکنش متناظر', blank=False, null=False,
                                        on_delete=models.DO_NOTHING,
-                                       related_name='ProfitCalculate')
+                                       related_name='ProfitCalculates')
     calculated_amount = models.PositiveIntegerField(verbose_name='مبلغ سود محاسبه شده', null=True, blank=True)
     balance = models.BooleanField(verbose_name='تسویه شده است', default=False)
     # تراکنشی که باغث شده این رکورد سود محاسبه شده تسویه گردد
     transaction_balance = models.ForeignKey(to=Transaction, verbose_name='تسویه شده با تراکنش',
-                                            related_name='ProfitCalculates', on_delete=models.DO_NOTHING, null=True,
+                                            related_name='ProfitCalculate', on_delete=models.DO_NOTHING, null=True,
                                             blank=True)
+    kind = models.ForeignKey(ProfitKind, on_delete=models.DO_NOTHING, null=False, blank=False)
+    description = models.TextField(null=True, blank=True)
+    comment = models.TextField(null=True, blank=True)
     created = models.DateTimeField(auto_now_add=True, editable=False)
 
     class Meta:
@@ -382,13 +462,24 @@ class ProfitCalculate(models.Model):
                f'amount: ({self.amount})  percent: ({self.percent}) final: ({self.calculated_amount})'
 
 
+class PelekanKind(models.Model):
+    title = models.CharField(max_length=200)
+    start_date = models.DateField(null=True, blank=True)
+    description = models.TextField(null=True, blank=True)
+
+    def __str__(self):
+        return self.title
+
+
 class Pelekan(models.Model):
     az = models.PositiveBigIntegerField()
     ta = models.PositiveBigIntegerField()
     percent = models.IntegerField()
+    kind = models.ForeignKey(PelekanKind, null=True, blank=True, on_delete=models.DO_NOTHING, related_name='kinds')
+    description = models.TextField(null=True, blank=True)
 
     def __str__(self):
-        return f'{self.az} --- {self.ta}  :  {self.percent}'
+        return f'{self.kind.title}: {self.az} --- {self.ta}  :  {self.percent}'
 
 
 class Post(models.Model):
