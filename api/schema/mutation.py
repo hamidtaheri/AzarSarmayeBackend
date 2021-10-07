@@ -2,6 +2,7 @@ import graphql_jwt
 from django.contrib.auth import authenticate
 from django.utils import timezone
 from graphene import String, ID
+from graphene_file_upload.scalars import Upload
 from graphql_jwt.decorators import permission_required
 from graphql_jwt.exceptions import PermissionDenied
 from graphql_jwt.shortcuts import get_token
@@ -76,6 +77,7 @@ class profileInput(graphene.InputObjectType):
     first_name = String()
     last_name = String()
     code_meli = String()
+    file = Upload(required=True)
 
 
 class CreateProfile(graphene.Mutation):

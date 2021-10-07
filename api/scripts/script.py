@@ -36,18 +36,3 @@ def mohasebe_sod_1_nafar(a: int):
 
 # print(datetime.date.today())
 # print(datetime.date.today() + datetime.timedelta(53))
-
-m = Profile.objects.get(id=2)
-print(m)
-
-transactions: QuerySet[Transaction] = Transaction.objects.filter(profile__presenter=m)
-seporde = transactions.filter(kind=1).aggregate(seporde=Sum('amount'))['seporde']
-marjo = transactions.filter(kind=2).aggregate(marjo=Sum('amount'))['marjo'] or 0
-variz_sod = transactions.filter(kind=3).aggregate(variz_sod=Sum('amount'))['variz_sod']
-bardasht_sod = transactions.filter(kind=4).aggregate(bardasht_sod=Sum('amount'))['bardasht_sod']
-variz_sod_moarefi = transactions.filter(kind=5).aggregate(variz_sod_moarefi=Sum('amount'))['variz_sod_moarefi'] or 0
-r = (seporde + variz_sod + variz_sod_moarefi) - (marjo + bardasht_sod)
-print(f'{seporde}   {marjo}   {variz_sod}   {bardasht_sod}   {variz_sod_moarefi}')
-print(m.mojodi_moarefishodeha_ta())
-
-print(len(Transaction.objects.filter(profile__in=m.moarefi_shode_ha.all())))
