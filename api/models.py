@@ -317,6 +317,9 @@ class Transaction(models.Model):
         ordering = ['effective_date']
 
     def percent_calculator(self) -> float:
+        """
+        محاسبه درشد سود بر اساس پلکان
+        """
         if self.effective_date < datetime.date(2021, 0o6, 22):  # 1400/04/01
             return self.percent
         else:
@@ -325,6 +328,9 @@ class Transaction(models.Model):
             return dar_melyon
 
     def profit_calculator(self, az_date: datetime.date, ta_date: datetime.date):
+        """
+        محاسبه سود تراکنش
+        """
         start_date: datetime.date = az_date
         end_date: datetime.date = ta_date  # اگر بخشی از این واریزی پیش از پایان دوره مرجوع گردد سود تعداد روز شامل را دریافت میکند نه تا پایان دوره را. این فرض در حال حاظر ممکن نیست
         if self.effective_date > az_date:
@@ -333,6 +339,7 @@ class Transaction(models.Model):
         # sod = tr.percent  # نحوه محاسبه سود؟؟؟؟؟؟؟؟ اینجاست
         sod = self.percent_calculator()  # نحوه محاسبه سود؟؟؟؟؟؟؟؟ اینجاست
         mohasebe_sod: ProfitCalculate = ProfitCalculate()
+        mohasebe_sod.transaction = self
         mohasebe_sod.user = self.profile.user
         mohasebe_sod.date_from = start_date
         mohasebe_sod.date_to = end_date
@@ -344,6 +351,9 @@ class Transaction(models.Model):
 
 
 class ProfitCalculate(models.Model):
+    """
+    محاسبه سود
+    """
     user = models.ForeignKey(get_user_model(), verbose_name='کاربر', on_delete=models.DO_NOTHING,
                              related_name='ProfitCalculates', blank=False, null=False)
     date_from = models.DateField(verbose_name='از تاریخ', blank=False, null=False)
@@ -368,7 +378,7 @@ class ProfitCalculate(models.Model):
         ordering = ['created']
 
     def __str__(self):
-        return f' from:({self.date_from} = {miladi_to_shamsi(self.date_from)}) to:({self.date_to} = {miladi_to_shamsi(self.date_to)}) days: ({self.days}) ' \
+        return f'for:({self.transaction}) from:({self.date_from} = {m2sh(self.date_from)}) to:({self.date_to} = {m2sh(self.date_to)}) days: ({self.days}) ' \
                f'amount: ({self.amount})  percent: ({self.percent}) final: ({self.calculated_amount})'
 
 

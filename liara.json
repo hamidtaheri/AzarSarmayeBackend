@@ -3,5 +3,11 @@
   "django": {
     "pythonVersion": "3.9"
   },
-  "app": "sadid"
+  "app": "sadid",
+  "disks": [
+    {
+      "name": "dumpdata",
+      "mountTo": "dumpdata"
+    }
+  ]
 }

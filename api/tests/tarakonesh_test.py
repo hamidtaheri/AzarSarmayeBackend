@@ -39,7 +39,7 @@ class TarakoneshTestClass(TestCase):
         print("Method: test_one_plus_one_equals_two.")
         self.assertEqual(1 + 1, 2)
 
-    def test_1_tarakonesh_1(self):
+    def test_1_tarakonesh_ordibehest_31(self):
         """
                 محاسبه سود برای فردی که ابتدای سال مبلغ ۵۰ میلیون تومان واریز کرده در بازه زمانی ابتدا تا انتهای اردیبهشت که ماه ۳۱ روزه است
         :return:
@@ -59,7 +59,27 @@ class TarakoneshTestClass(TestCase):
         self.assertEqual(s, 3616667)
         self.assertEqual(self.a.mojodi_ta(ta=datetime.date(2021, 0o5, 21)), 500000000)
 
-    def test_1_tarakonesh_2(self):
+    def test_1_tarakonesh_ordibehest_30(self):
+        """
+                محاسبه سود برای فردی که ابتدای سال مبلغ ۵۰ میلیون تومان واریز کرده در بازه زمانی ابتدا تا 30 اردیبهشت که ماه ۳۱ روزه است
+        :return:
+        """
+        t = Transaction(amount=500000000, effective_date=sh2m("1400/01/01"),
+                        date_time=datetime.datetime(2021, 0o1, 0o1, 1, tzinfo=pytz.UTC), percent=70000)
+        t.kind = self.tk1
+        t.profile = self.a
+        t.created_by = self.user
+        t.modified_by = self.user
+        t.save()
+        self.a.transactions.add(t)
+        print(self.a.mohasebe_sod_old(az_date=sh2m("1400/02/01"), ta_date=sh2m("1400/02/30")))
+        lst, s = self.a.mohasebe_sod_old(az_date=sh2m("1400/02/01"), ta_date=sh2m("1400/02/30"))
+        self.assertEqual(len(lst), 1)
+        print(s)
+        self.assertEqual(s, 3500000)  # 3616667
+        self.assertEqual(self.a.mojodi_ta(ta=datetime.date(2021, 0o5, 21)), 500000000)
+
+    def test_1_tarakonesh_mehr_30(self):
         """
                 محاسبه سود برای فردی که ابتدای سال مبلغ ۵۰ میلیون تومان واریز کرده در بازه زمانی ابتدا تا انتهای مهر که ماه ۳۰ روزه است
         :return:
@@ -79,7 +99,7 @@ class TarakoneshTestClass(TestCase):
         self.assertEqual(s, 3500000)
         self.assertEqual(self.a.mojodi_ta(ta=datetime.date(2021, 0o5, 21)), 500000000)
 
-    def test_1_tarakonesh_3(self):
+    def test_2_tarakonesh_ordibehest_31(self):
         """
                 محاسبه سود برای فردی که ابتدای سال مبلغ ۵۰ میلیون تومان و ۱۵ اردیبهشت ۱۰ میلیون تومان واریز کرده در بازه زمانی ابتدا تا انتهای مهر که ماه ۳۰ روزه است
         :return:
@@ -102,12 +122,46 @@ class TarakoneshTestClass(TestCase):
         t2.save()
         self.a.transactions.add(t1)
         self.a.transactions.add(t2)
-        print(self.a.mohasebe_sod_old(az_date=sh2m("1400/02/01"), ta_date=sh2m("1400/02/31")))
+        # print(self.a.mohasebe_sod_old(az_date=sh2m("1400/02/01"), ta_date=sh2m("1400/02/31")))
         lst, s = self.a.mohasebe_sod_old(az_date=sh2m("1400/02/01"), ta_date=sh2m("1400/02/31"))
+        for l in lst:
+            print(l)
         self.assertEqual(len(lst), 2)
         print(s)
         self.assertEqual(s, 4013334)
         self.assertEqual(self.a.mojodi_ta(ta=sh2m("1400/02/31")), 600000000)
+
+    def test_2_tarakonesh_ordibehest_30(self):
+        """
+                محاسبه سود برای فردی که ابتدای سال مبلغ ۵۰ میلیون تومان و ۱۵ اردیبهشت ۱۰ میلیون تومان واریز کرده در بازه زمانی ابتدا تا انتهای مهر که ماه ۳۰ روزه است
+        :return:
+        """
+        t1 = Transaction(amount=500000000, effective_date=sh2m("1400/01/01"),
+                         date_time=datetime.datetime(2021, 0o1, 0o1, 1, tzinfo=pytz.UTC), percent=70000)
+
+        t2 = Transaction(amount=100000000, effective_date=sh2m("1400/02/15"),
+                         date_time=datetime.datetime(2021, 0o1, 0o1, 1, tzinfo=pytz.UTC), percent=70000)
+        t1.kind = self.tk1
+        t1.profile = self.a
+        t1.created_by = self.user
+        t1.modified_by = self.user
+        t1.save()
+
+        t2.kind = self.tk1
+        t2.profile = self.a
+        t2.created_by = self.user
+        t2.modified_by = self.user
+        t2.save()
+        self.a.transactions.add(t1)
+        self.a.transactions.add(t2)
+        # print(self.a.mohasebe_sod_old(az_date=sh2m("1400/02/01"), ta_date=sh2m("1400/02/31")))
+        lst, s = self.a.mohasebe_sod_old(az_date=sh2m("1400/02/01"), ta_date=sh2m("1400/02/30"))
+        for l in lst:
+            print(l)
+        self.assertEqual(len(lst), 2)
+        print(s)
+        self.assertEqual(s, 3873333)
+        self.assertEqual(self.a.mojodi_ta(ta=sh2m("1400/02/30")), 600000000)
 
     def test_shamsi_to_miladi_1(self):
         shamsi = "1400/07/05"
