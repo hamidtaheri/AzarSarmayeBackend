@@ -1,8 +1,5 @@
-import datetime
-
-import jdatetime
-
-import api.models
+# import api
+from api.models import *
 
 # 1400/01/01        2021-03-21
 # 1400/01/31        2021-04-20
@@ -21,29 +18,21 @@ import api.models
 
 # 1400/04601        2021-08-23
 # 1400/06/31        2021-09-22
-m = api.models.Profile.objects.get(id=2)
-print(m)
-az_date = datetime.date(year=2021, month=4, day=21)
-ta_date = datetime.date(year=2021, month=5, day=21)
-mo, so = m.mohasebe_sod_old(az_date=az_date, ta_date=ta_date)
-print(len(mo))
-print(mo)
-print(so)
+az_date = sh2m('1400/07/01')
+ta_date = sh2m('1400/07/30')
 
 
-def shamsi_to_miladi(j_date: str) -> datetime.date:
-    """
-    تبدیل تاریخ شمسی به میلادی
-    :param j_date: رشته تاریخ شمسی مانند ۱۴۰۰/۱۰/۰۳
-    :return: datetime.date تاریخ میلادی
-    """
-    jyear = int(float(j_date[0:4]))
-    jmonth = int(float(j_date[5:7]))
-    jday = int(float(j_date[8:10]))
-    (gyear, gmonth, gday) = jdatetime.JalaliToGregorian(jyear=jyear, jmonth=jmonth,
-                                                        jday=jday).getGregorianList()
-    return datetime.date(gyear, gmonth, gday)
+def mohasebe_sod_all():
+    for p in Profile.objects.all():
+        mohasebe_sod_1_nafar(p.id)
 
 
-shamsi_date = "1400/07/05"
-print(shamsi_to_miladi(shamsi_date))
+def mohasebe_sod_1_nafar(a: int):
+    m = Profile.objects.get(id=a)
+    print(m)
+    mo, so = m.mohasebe_sod_old(az_date=az_date, ta_date=ta_date)
+    print(f'for {m.id} : {so}')
+
+
+# print(datetime.date.today())
+# print(datetime.date.today() + datetime.timedelta(53))

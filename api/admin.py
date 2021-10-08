@@ -1,10 +1,8 @@
 from django.contrib import admin, messages
 from django.contrib.auth.admin import UserAdmin
-from django.contrib.contenttypes.admin import GenericStackedInline, GenericTabularInline
+from django.contrib.contenttypes.admin import GenericStackedInline
 from django.utils.translation import ugettext_lazy as _
 # you need import this for adding jalali calander widget
-import django_jalali.admin as jadmin
-from django.views import generic
 from import_export.admin import ImportExportModelAdmin
 
 from . import models
@@ -40,7 +38,7 @@ class TransactionAdmin(admin.ModelAdmin):
 
 @admin.register(models.ProfitCalculate)
 class ProfitCalculateAdmin(admin.ModelAdmin):
-    list_display = ['__str__', 'user', ]
+    list_display = ['__str__', ]
     readonly_fields = ['transaction']
 
 
@@ -86,6 +84,8 @@ class TransactionKindAdmin(ImportExportModelAdmin):
 
 admin.site.register(models.Post)
 admin.site.register(models.ImageKind)
+admin.site.register(models.ProfitKind)
+admin.site.register(models.PelekanKind)
 admin.site.register(models.ProfileImageGallery)
 admin.site.register(models.Pelekan)
 # admin.site.register(models.TransactionKind)
