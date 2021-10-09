@@ -1,13 +1,13 @@
 import json
 
 from graphene_django.utils.testing import GraphQLTestCase
+from graphql_jwt.shortcuts import get_token
 
 from api.models import User, TransactionKind
 
 
 class GraphqlTestCase(GraphQLTestCase):
     GRAPHQL_URL = '/api/graphql'
-    token = ''
 
     @classmethod
     def setUpTestData(cls):
@@ -15,7 +15,7 @@ class GraphqlTestCase(GraphQLTestCase):
         u.username = 'myadmin'
         u.set_password(raw_password='admin123')
         u.save()
-
+        cls.token = get_token(u)
         tk = TransactionKind.objects.create(title="sarmaye")
         tk.save()
 
@@ -48,27 +48,34 @@ class GraphqlTestCase(GraphQLTestCase):
             # input_data={'username': 'admin', 'password': 'admin123'}
         )
         content = json.loads(response.content)
-        token = content['data']['login']['token']
+        self.token = content['data']['login']['token']
         self.assertIsNotNone(self.token)
         self.assertResponseNoErrors(response)
 
-        # response = self.query(
-        #     '''
-        #     {
-        #       me {
-        #         id
-        #         username
-        #       }
-        #     }
-        #     ''',
-        #     headers=
-        #     {
-        #         "authorization": "jwt " + token
-        #     }
-        # )
-        #
-        # content = json.loads(response.content)
-        # print(content)
+    def test_me(self):
+        response = self.query(
+            '''
+            {
+              me {
+                id
+                username
+              }
+            }
+            ''',
+            headers=
+            {
+                "HTTP_AUTHORIZATION": "jwt " + self.token
+                # "http_authorization": "jwt " + token
+                # "AUTHORIZATION": "jwt " + token
+            }
+        )
+
+        content = json.loads(response.content)
+        id = content['data']['me']['id']
+        username = content['data']['me']['username']
+        print(content)
+        self.assertEqual(id, '1')
+        self.assertEqual(username, 'myadmin')
 
     def test_transactionKinds(self):
         response = self.query(
