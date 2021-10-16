@@ -2,6 +2,7 @@ import datetime
 from random import randrange
 
 import jdatetime
+import openpyxl
 from crum import get_current_user
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AbstractUser
@@ -506,6 +507,87 @@ class Post(models.Model):
 
     def __str__(self):
         return f'{self.title}'
+
+
+def mohasebe_sod_all(az_date: datetime, ta_date: datetime):
+    profit_excel = openpyxl.Workbook()
+    profit_sheet = profit_excel.active
+    profit_sheet.title = "sadid Sheet1"
+
+    profit_sheet.cell(row=1, column=1, value="row num")
+    profit_sheet.cell(row=1, column=2, value="id")
+    profit_sheet.cell(row=1, column=3, value="name")
+    profit_sheet.cell(row=1, column=4, value="amount")
+    profit_sheet.cell(row=1, column=5, value="hesab")
+
+    profit_details_excel = openpyxl.Workbook()
+    profit_details_sheet = profit_details_excel.active
+    profit_details_sheet.title = "sadid Sheet1"
+
+    profit_details_sheet.cell(row=1, column=1, value="row num")
+    profit_details_sheet.cell(row=1, column=2, value="Profile_id")
+    profit_details_sheet.cell(row=1, column=3, value="Profile_name")
+    profit_details_sheet.cell(row=1, column=4, value="transaction_id")
+    profit_details_sheet.cell(row=1, column=5, value="percent")
+    profit_details_sheet.cell(row=1, column=6, value="amount")
+    profit_details_sheet.cell(row=1, column=7, value="transaction_date")
+    profit_details_sheet.cell(row=1, column=8, value="date_from")
+    profit_details_sheet.cell(row=1, column=9, value="date_to")
+    profit_details_sheet.cell(row=1, column=10, value="days")
+    profit_details_sheet.cell(row=1, column=11, value="calculated_amount")
+    profit_details_sheet.cell(row=1, column=12, value="تاریخ")
+
+    counter = detail_counter = 1
+    # for pr in Profile.objects.all():
+    for pr in Profile.objects.filter(id__in=range(1, 300)):
+        p: Profile = pr
+        # if p.id in [11, 29, 80, 81, 113, 128, 167,176]:
+        #     continue
+        sod_sum = 0
+        try:
+            sod_list, sod_sum = mohasebe_sod_1_nafar(p.id, az_date, ta_date)
+
+            counter += 1
+            profit_sheet.cell(row=counter, column=1, value=counter - 1)
+            profit_sheet.cell(row=counter, column=2, value=f"{p.id}")
+            profit_sheet.cell(row=counter, column=3, value=f"{p.first_name} {p.last_name}")
+            profit_sheet.cell(row=counter, column=4, value=f"{sod_sum}")
+            profit_sheet.cell(row=counter, column=5, value=p.shomare_hesab)
+
+            for pc in sod_list:
+                detail_counter = detail_counter + 1
+                pc: ProfitCalculate = pc
+                profit_details_sheet.cell(row=detail_counter, column=1, value=detail_counter - 1)
+                profit_details_sheet.cell(row=detail_counter, column=2, value=f"{pc.Profile.id}")
+                profit_details_sheet.cell(row=detail_counter, column=3,
+                                          value=f"{pc.Profile.first_name} {pc.Profile.last_name}")
+                profit_details_sheet.cell(row=detail_counter, column=4, value=f"{pc.transaction.id}")
+                profit_details_sheet.cell(row=detail_counter, column=5, value=f"{pc.percent}")
+                profit_details_sheet.cell(row=detail_counter, column=6, value=f"{pc.amount}")
+                profit_details_sheet.cell(row=detail_counter, column=7, value=f"{pc.transaction.effective_date}")
+                profit_details_sheet.cell(row=detail_counter, column=8, value=f"{pc.date_from}")
+                profit_details_sheet.cell(row=detail_counter, column=9, value=f"{pc.date_to}")
+                profit_details_sheet.cell(row=detail_counter, column=10, value=f"{pc.days}")
+                profit_details_sheet.cell(row=detail_counter, column=11, value=f"{pc.calculated_amount}")
+                profit_details_sheet.cell(row=detail_counter, column=12, value=f"{m2sh(pc.transaction.effective_date)}")
+
+        except Pelekan.MultipleObjectsReturned:
+            print(f'ERROR for {p}({p.id})  MultipleObjectsReturned')
+            sod_sum = f'ERROR for {p}({p.id})  MultipleObjectsReturned'
+        except Pelekan.DoesNotExist:
+            print(f'ERROR for {p}({p.id})  DoesNotExist')
+            sod_sum = f'ERROR for {p}({p.id})  DoesNotExist'
+
+    profit_excel.save(filename=f'profit.xlsx')
+    profit_details_excel.save(filename=f'profit_details.xlsx')
+    print(f'finish')
+    return 'deportee.xlsx'
+
+
+def mohasebe_sod_1_nafar(a: int, az_date: datetime, ta_date: datetime):
+    m = Profile.objects.get(id=a)
+    sod_list, sod_sum = m.mohasebe_sod_old(az_date=az_date, ta_date=ta_date)
+    return sod_list, f'{sod_sum:,}'
 
 
 def shamsi_to_miladi(j_date: str, sep: str = "/") -> datetime.date:

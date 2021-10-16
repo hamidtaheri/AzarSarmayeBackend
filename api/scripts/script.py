@@ -1,5 +1,8 @@
 # import api
+from django.utils.datetime_safe import strftime
+
 from api.models import *
+import openpyxl
 
 # 1400/01/01        2021-03-21
 # 1400/01/31        2021-04-20
@@ -21,19 +24,8 @@ from api.models import *
 az_date = sh2m('1400/06/01')
 ta_date = sh2m('1400/06/30')
 
-
-def mohasebe_sod_all():
-    for p in Profile.objects.all():
-        mohasebe_sod_1_nafar(p.id)
-
-
-def mohasebe_sod_1_nafar(a: int):
-    m = Profile.objects.get(id=a)
-    print(m)
-    mo, so = m.mohasebe_sod_old(az_date=az_date, ta_date=ta_date)
-    print(f'for {m.id} : {so}')
-
-
 # print(datetime.date.today())
 # print(datetime.date.today() + datetime.timedelta(53))
-mohasebe_sod_1_nafar(325)
+list_sod, sum_sod = mohasebe_sod_1_nafar(325, az_date, ta_date)
+print(sum_sod)
+# mohasebe_sod_all(az_date, ta_date)
