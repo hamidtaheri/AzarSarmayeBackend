@@ -4,23 +4,28 @@ import pytz
 from django.test import TestCase
 
 import api.models
-from api.models import Profile, Transaction, TransactionKind, sh2m, miladi_to_shamsi
+from api.models import Profile, Transaction, TransactionKind, sh2m, miladi_to_shamsi, Pelekan
 
 
 class TarakoneshTestClass(TestCase):
-    tk1 = TransactionKind.objects.get(id=1)
+    fixtures = ['dump-1400-07-21-2.json', ]
     a = Profile(id=1, first_name='Morteza', last_name='Motahari')
     user = api.models.User()
     user.username = "user"
 
+    # user = api.models.User.objects.get(id=2)
+    # fixtures = ['/api/fixtures/dump-1400-07-20.json', ]  # No fixture named 'dump-1400-07-20' found.
+
     @classmethod
     def setUpTestData(cls):
         print("setUpTestData: Run once to set up non-modified data for all class methods.")
+        cls.tk1 = TransactionKind.objects.get(id=1)
 
         cls.a.save()
-        # 
-        cls.tk1.save()
-        cls.user.save()
+        # #
+        # cls.tk1.save()
+        # cls.user.save()
+        cls.user = api.models.User.objects.get(id=1)
         pass
 
     def setUp(self):
@@ -150,6 +155,57 @@ class TarakoneshTestClass(TestCase):
         print(s)
         self.assertEqual(s, 3873333)
         self.assertEqual(self.a.mojodi_ta(ta=sh2m("1400/02/30")), 600000000)
+
+    def test_morteza_ordibehesht_30(self):
+        morteza: Profile = Profile.objects.get(id=2)
+        lst, s = morteza.mohasebe_sod_old(az_date=sh2m("1400/02/01"), ta_date=sh2m("1400/02/30"))
+        for l in lst:
+            print(l)
+        self.assertEqual(len(lst), 7)
+        print(f'در مجموع   {s}')
+
+    def test_morteza_ordibehesht_31(self):
+        morteza: Profile = Profile.objects.get(id=2)
+        lst, s = morteza.mohasebe_sod_old(az_date=sh2m("1400/02/01"), ta_date=sh2m("1400/02/31"))
+        for l in lst:
+            print(l)
+        self.assertEqual(len(lst), 8)
+        print(f'در مجموع   {s}')
+
+    def test_janani_shahrivar_30(self):
+        print('محاسبه سود دریافتی جنانی۲۶۶ دز شهریور ۱۴۰۰')
+        morteza: Profile = Profile.objects.get(id=266)
+        lst, s = morteza.mohasebe_sod_old(az_date=sh2m("1400/06/01"), ta_date=sh2m("1400/06/30"))
+        for l in lst:
+            print(l)
+        self.assertEqual(len(lst), 1)
+        self.assertEqual(s, 22400000)
+        print(f'در مجموع   {s}')
+    def test_godarzi_325_shahrivar_30(self):
+        print('محاسبه سود دریافتی گودرزی۳۲۵ دز شهریور ۱۴۰۰')
+        morteza: Profile = Profile.objects.get(id=325)
+        lst, s = morteza.mohasebe_sod_old(az_date=sh2m("1400/06/01"), ta_date=sh2m("1400/06/30"))
+        for l in lst:
+            print(l)
+        self.assertEqual(len(lst), 4)
+        self.assertEqual(s, 58218333)
+        print(f'در مجموع   {s}')
+    def test_morteza_moarefi_ordibehesht_31(self):
+        morteza: Profile = Profile.objects.get(id=2)
+        lst, s = morteza.mohasebe_sod_moarefi(az_date=sh2m("1400/02/01"), ta_date=sh2m("1400/02/31"))
+        for l in lst:
+            print(l)
+        self.assertEqual(len(lst), 13)
+        print(f'در مجموع   {s}')
+
+    def test_morteza_moarefi_shahrivar_30(self):
+        print('محاسبه سود معرفی مرتضی مطهری در شهریور ماه ۱۴۰۰')
+        morteza: Profile = Profile.objects.get(id=2)
+        lst, s = morteza.mohasebe_sod_moarefi(az_date=sh2m("1400/06/01"), ta_date=sh2m("1400/06/30"))
+        for l in lst:
+            print(l)
+        self.assertEqual(len(lst), 22)
+        print(f'در مجموع   {s}')
 
     def test_shamsi_to_miladi_1(self):
         shamsi = "1400/07/05"

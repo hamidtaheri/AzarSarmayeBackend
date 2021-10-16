@@ -16,10 +16,10 @@ from api.models import *
 # 1400/05/01        2021-07-23
 # 1400/05/31        2021-08-22
 
-# 1400/04601        2021-08-23
+# 1400/06/01        2021-08-23
 # 1400/06/31        2021-09-22
-az_date = sh2m('1400/07/01')
-ta_date = sh2m('1400/07/30')
+az_date = sh2m('1400/06/01')
+ta_date = sh2m('1400/06/30')
 
 
 def mohasebe_sod_all():
@@ -36,3 +36,4 @@ def mohasebe_sod_1_nafar(a: int):
 
 # print(datetime.date.today())
 # print(datetime.date.today() + datetime.timedelta(53))
+mohasebe_sod_1_nafar(325)

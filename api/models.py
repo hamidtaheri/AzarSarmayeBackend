@@ -18,7 +18,7 @@ class MyException(Exception):
 
 
 day_in_month = 30
-day_for_calculate_presenter_profit = 180  # تعدادروزی که پس از آن سود معرفی به معرف تعلق نمیگیرد
+day_for_calculate_presenter_profit = 18000  # تعدادروزی که پس از آن سود معرفی به معرف تعلق نمیگیرد
 
 
 def get_storage_path(instance, filename):
@@ -291,6 +291,19 @@ class Profile(models.Model):
 
         return mohasebat_sod, sum_of_sod
 
+    def mohasebe_sod_moarefi(self, az_date: datetime, ta_date: datetime):
+        sum_of_sod = 0
+        mohasebat_sod: list[ProfitCalculate] = list[ProfitCalculate]()
+        tarakoneshs: QuerySet[Transaction] = Transaction.objects.filter(profile__presenter=self,
+                                                                        effective_date__lte=ta_date,
+                                                                        kind_id=1)
+        for tr in tarakoneshs:
+            mohasebe_sod: ProfitCalculate = tr.presenter_profit_calculator(az_date=az_date, ta_date=ta_date)
+            sum_of_sod = sum_of_sod + mohasebe_sod.calculated_amount
+            mohasebat_sod.append(mohasebe_sod)
+
+        return mohasebat_sod, sum_of_sod
+
     def __str__(self):
         return f'{self.first_name}   {self.last_name}'
 
@@ -328,7 +341,7 @@ class Transaction(models.Model):
                                     related_name='transactions_modified_by', editable=False)
 
     def __str__(self):
-        return f'{self.id} {self.profile.last_name}'
+        return f'{self.id} {self.profile.first_name} {self.profile.last_name}({self.profile.id})'
 
     class Meta:
         ordering = ['effective_date']
@@ -341,7 +354,7 @@ class Transaction(models.Model):
             return self.percent
         else:
             mojodi = self.profile.mojodi_ta(ta=self.effective_date)
-            dar_melyon = Pelekan.objects.get(id=1, az__lte=mojodi, ta__gte=mojodi).percent
+            dar_melyon = Pelekan.objects.get(kind_id=1, az__lte=mojodi, ta__gte=mojodi).percent
             return dar_melyon
 
     def presenter_percent_calculator(self, ta_date: datetime.date) -> float:
@@ -352,9 +365,12 @@ class Transaction(models.Model):
         #     return self.percent
         # else:
         mojodi = self.profile.mojodi_ta(ta=self.effective_date)
-        mojodi_moarefishodeha = self.profile.mojodi_moarefishodeha_ta(ta_date=ta_date)
+        mojodi_moarefishodeha = self.profile.presenter.mojodi_moarefishodeha_ta(ta_date=ta_date)
         mojodi_kol = mojodi + mojodi_moarefishodeha
-        percent = Pelekan.objects.get(id=2, az__lte=mojodi_kol, ta__gte=mojodi_kol).percent
+        # محاسبه درصد سود معرف بر اساس پلکان
+        percent = Pelekan.objects.get(kind_id=2, az__lte=mojodi_kol, ta__gte=mojodi_kol).percent
+        # محاسبه سود بر اساس درصد ثبت شده در رکورد سرمایه گزار
+        # percent = self.profile.presenter_percent
         return percent
 
     def profit_calculator(self, az_date: datetime.date, ta_date: datetime.date):
