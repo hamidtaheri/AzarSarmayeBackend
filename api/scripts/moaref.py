@@ -6,10 +6,10 @@ from api.models import Profile
 all_ashkhas:QuerySet[Profile] = Profile.objects.all()
 
 # معرفی شده ها
-moarefi_shode_ha: QuerySet[Profile] = all_ashkhas.filter(Moaref_Tbl_Ashkhas_id__isnull=False).order_by('Moaref_Tbl_Ashkhas_id_id')
+moarefi_shode_ha: QuerySet[Profile] = all_ashkhas.filter(presenter__isnull=False).order_by('presenter')
 
 # معرفی نشده ها
-moarefi_na_shode_ha = all_ashkhas.filter(Moaref_Tbl_Ashkhas_id__isnull=True).order_by('Moaref_Tbl_Ashkhas_id_id')
+moarefi_na_shode_ha = all_ashkhas.filter(presenter__isnull=True).order_by('presenter')
 
 print(len(moarefi_shode_ha))
 # معرف ها
@@ -21,4 +21,4 @@ for a in moarefi_shode_ha:
 
 print(len(moaref_ha))
 for m in moaref_ha:
-    print(m)
+    print(f'{m} ;  {m.moarefi_shode_ha.all().count()} ; {m.mojodi_moarefishodeha_ta():,}')

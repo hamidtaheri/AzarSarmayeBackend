@@ -8,7 +8,7 @@ from api.models import Profile, Transaction, TransactionKind, sh2m, miladi_to_sh
 
 
 class TarakoneshTestClass(TestCase):
-    fixtures = ['dump-1400-07-21-2.json', ]
+    fixtures = ['dump-1400-08-01.json', ]
     a = Profile(id=1, first_name='Morteza', last_name='Motahari')
     user = api.models.User()
     user.username = "user"
@@ -181,6 +181,17 @@ class TarakoneshTestClass(TestCase):
         self.assertEqual(len(lst), 1)
         self.assertEqual(s, 22400000)
         print(f'در مجموع   {s}')
+
+    def test_janani_mehr_30(self):
+        print('محاسبه سود دریافتی جنانی۲۶۶ دز مهر ۱۴۰۰')
+        morteza: Profile = Profile.objects.get(id=266)
+        lst, s = morteza.mohasebe_sod_old(az_date=sh2m("1400/07/01"), ta_date=sh2m("1400/07/30"))
+        for l in lst:
+            print(l)
+        self.assertEqual(len(lst), 1)
+        self.assertEqual(s, 22400000)
+        print(f'در مجموع   {s}')
+
     def test_godarzi_325_shahrivar_30(self):
         print('محاسبه سود دریافتی گودرزی۳۲۵ دز شهریور ۱۴۰۰')
         morteza: Profile = Profile.objects.get(id=325)
@@ -190,6 +201,7 @@ class TarakoneshTestClass(TestCase):
         self.assertEqual(len(lst), 4)
         self.assertEqual(s, 58218333)
         print(f'در مجموع   {s}')
+
     def test_morteza_moarefi_ordibehesht_31(self):
         morteza: Profile = Profile.objects.get(id=2)
         lst, s = morteza.mohasebe_sod_moarefi(az_date=sh2m("1400/02/01"), ta_date=sh2m("1400/02/31"))

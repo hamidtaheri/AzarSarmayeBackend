@@ -11,7 +11,8 @@ from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import PermissionDenied
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
-from django.db.models import QuerySet, Sum
+from django.db.models import QuerySet, Sum, Q
+from django.utils.timezone import now
 
 
 class MyException(Exception):
@@ -223,6 +224,12 @@ class Profile(models.Model):
             ("can_delete_profile_for_all", "حذف پروفایل"),
         )
 
+    @property
+    def first_transaction(self):
+        """اولین سپرده گزاری"""
+        tr = Transaction.objects.filter(profile=self, kind_id=1).order_by("effective_date").first()
+        return tr
+
     def tarakonesh_sum_ta(self, kind: int, ta: datetime = None, ) -> float:
         if ta:
             tr = Transaction.objects.filter(profile=self, kind=kind, effective_date__lte=ta).aggregate(
@@ -282,9 +289,9 @@ class Profile(models.Model):
         # واریزی های کاربر تا پیش از تاریخ پایان
 
         mohasebat_sod: list[ProfitCalculate] = list[ProfitCalculate]()
-        tarakoneshs: QuerySet[Transaction] = Transaction.objects.filter(profile=self,
-                                                                        effective_date__lte=ta_date,
-                                                                        kind_id=1)
+        tarakoneshs: QuerySet[Transaction] = Transaction.objects.filter(Q(kind_id=1) | Q(kind_id=2),
+                                                                        profile=self,
+                                                                        effective_date__lte=ta_date, )
         for tr in tarakoneshs:
             mohasebe_sod: ProfitCalculate = tr.profit_calculator(az_date=az_date, ta_date=ta_date)
             sum_of_sod = sum_of_sod + mohasebe_sod.calculated_amount
@@ -295,6 +302,7 @@ class Profile(models.Model):
     def mohasebe_sod_moarefi(self, az_date: datetime, ta_date: datetime):
         sum_of_sod = 0
         mohasebat_sod: list[ProfitCalculate] = list[ProfitCalculate]()
+        # پیدا کردن تمام سپرده گزاری هایی که این پروفایل(self)معرف آنهاست و تاریخ موثر آنها کوچکتر مساوی تا است
         tarakoneshs: QuerySet[Transaction] = Transaction.objects.filter(profile__presenter=self,
                                                                         effective_date__lte=ta_date,
                                                                         kind_id=1)
@@ -329,9 +337,11 @@ class Transaction(models.Model):
     amount = models.BigIntegerField()
     kind = models.ForeignKey(TransactionKind, on_delete=models.CASCADE, related_name='transactions')
     NahveyePardakht = models.CharField(max_length=40, blank=True, null=True)
-    description = models.CharField(max_length=100, blank=True, null=True)
+    description = models.TextField(blank=True, null=True)
     Tbl_Pardakht_List_id = models.IntegerField(blank=True, null=True)
     percent = models.IntegerField()
+    # صرفا برای محاسبه مهر۱۴۰۰ برای اینکه محاسبه سود معرف به شیوه قدیمی محاسبه شود
+    DarMelyoon_Moaref = models.IntegerField(blank=True, null=True)
 
     # logging fields
     created = models.DateTimeField(auto_now_add=True, editable=False)
@@ -351,11 +361,13 @@ class Transaction(models.Model):
         """
         محاسبه درصد سود سرمایه گزاری بر اساس پلکان
         """
-        if self.effective_date < datetime.date(2021, 0o6, 22):  # 1400/04/01
+        if self.effective_date <= sh2m('1400/04/01'):
             return self.percent
         else:
             mojodi = self.profile.mojodi_ta(ta=self.effective_date)
-            dar_melyon = Pelekan.objects.get(kind_id=1, az__lte=mojodi, ta__gte=mojodi).percent
+            #   از کوچکتر مساوی از موجودی و تا بزرگتر از موجودی
+            # lte=Less Than or Equal   gt=Greater Than
+            dar_melyon = Pelekan.objects.get(kind_id=1, az__lte=mojodi, ta__gt=mojodi).percent
             return dar_melyon
 
     def presenter_percent_calculator(self, ta_date: datetime.date) -> float:
@@ -398,11 +410,16 @@ class Transaction(models.Model):
         mohasebe_sod.amount = self.amount
         mohasebe_sod.percent = sod
         mohasebe_sod.calculated_amount = round(self.amount * (sod / 10000000) * (mohasebe_sod.days / day_in_month), 0)
+        if self.kind_id == 1:  # این تراکنش از نوع سپرده گزاری است
+            pass
+        if self.kind_id == 2:  # این تراکنش از نوع مرجوعی است
+            mohasebe_sod.calculated_amount = -1 * mohasebe_sod.calculated_amount
         return mohasebe_sod
 
     def presenter_profit_calculator(self, az_date: datetime.date, ta_date: datetime.date):
         """
         محاسبه سود معرف
+        برای تمام سپرده گزاری های معرف شده در ۹۳ روز پس از اولین واریزی به مدت ۶ ماه سود معرفی به معرف تعلق میگیرد
         """
         presenter = Profile.objects.get(id=self.profile.presenter.id)
         start_date: datetime.date = az_date
@@ -412,6 +429,12 @@ class Transaction(models.Model):
         # تا زمان درست شدن تاریخ انقضای تراکنش ها این شرط فیر فعال شده و شرط زیر جایگزین میگردد
         # if self.expire_date < ta_date:
         #     end_date = self.expire_date  # تاریخ پایان قرارداد این واریزی پیش از پایان بازه محاسبه سود است بنابراین سود تعداد روز شامل را دریافت میکند
+        #     return 0
+
+        # فقط به واریزی های ۹۳ روز اول سود معرف تعلق میگرد
+        # if self.profile.first_transaction.effective_date + datetime.timedelta(days=93) > self.effective_date:
+        #     #     این واریزی در بازه ۹۳ روز اولیه سپرده گزار نیست بنابراین سودی به معرف تعلق نمیگیرد
+        #     return 0
 
         if self.effective_date + datetime.timedelta(day_for_calculate_presenter_profit) < ta_date:
             end_date = self.effective_date + datetime.timedelta(
@@ -519,6 +542,8 @@ def mohasebe_sod_all(az_date: datetime, ta_date: datetime):
     profit_sheet.cell(row=1, column=3, value="name")
     profit_sheet.cell(row=1, column=4, value="amount")
     profit_sheet.cell(row=1, column=5, value="hesab")
+    profit_sheet.cell(row=1, column=6, value="محاسبه شده توسط نرم افزار قدیمی")
+    profit_sheet.cell(row=1, column=7, value="اختلاف")
 
     profit_details_excel = openpyxl.Workbook()
     profit_details_sheet = profit_details_excel.active
@@ -538,14 +563,92 @@ def mohasebe_sod_all(az_date: datetime, ta_date: datetime):
     profit_details_sheet.cell(row=1, column=12, value="تاریخ")
 
     counter = detail_counter = 1
-    # for pr in Profile.objects.all():
-    for pr in Profile.objects.filter(id__in=range(1, 300)):
+    for pr in Profile.objects.all():
         p: Profile = pr
-        # if p.id in [11, 29, 80, 81, 113, 128, 167,176]:
-        #     continue
-        sod_sum = 0
         try:
             sod_list, sod_sum = mohasebe_sod_1_nafar(p.id, az_date, ta_date)
+
+            counter += 1
+            profit_sheet.cell(row=counter, column=1, value=counter - 1)
+            profit_sheet.cell(row=counter, column=2, value=f"{p.id}")
+            profit_sheet.cell(row=counter, column=3, value=f"{p.first_name} {p.last_name}")
+            profit_sheet.cell(row=counter, column=4, value=sod_sum)
+            profit_sheet.cell(row=counter, column=5, value=p.shomare_hesab)
+
+            old_calculated_value = 0
+            try:
+                old_calculated: Transaction = Transaction.objects.filter(profile=pr, kind_id=3, effective_date=ta_date)[
+                    0]
+                old_calculated_value = old_calculated.amount
+            except IndexError:
+                pass
+
+            profit_sheet.cell(row=counter, column=6, value=old_calculated_value)
+            profit_sheet.cell(row=counter, column=7, value=sod_sum - old_calculated_value)
+
+            for pc in sod_list:
+                detail_counter = detail_counter + 1
+                pc: ProfitCalculate = pc
+                profit_details_sheet.cell(row=detail_counter, column=1, value=detail_counter - 1)
+                profit_details_sheet.cell(row=detail_counter, column=2, value=f"{pc.Profile.id}")
+                profit_details_sheet.cell(row=detail_counter, column=3,
+                                          value=f"{pc.Profile.first_name} {pc.Profile.last_name}")
+                profit_details_sheet.cell(row=detail_counter, column=4, value=f"{pc.transaction.id}")
+                profit_details_sheet.cell(row=detail_counter, column=5, value=f"{pc.percent}")
+                profit_details_sheet.cell(row=detail_counter, column=6, value=pc.amount)
+                profit_details_sheet.cell(row=detail_counter, column=7, value=f"{pc.transaction.effective_date}")
+                profit_details_sheet.cell(row=detail_counter, column=8, value=f"{pc.date_from}")
+                profit_details_sheet.cell(row=detail_counter, column=9, value=f"{pc.date_to}")
+                profit_details_sheet.cell(row=detail_counter, column=10, value=f"{pc.days}")
+                profit_details_sheet.cell(row=detail_counter, column=11, value=pc.calculated_amount)
+                profit_details_sheet.cell(row=detail_counter, column=12, value=f"{m2sh(pc.transaction.effective_date)}")
+
+        except Pelekan.MultipleObjectsReturned:
+            print(f'ERROR for {p}({p.id})  MultipleObjectsReturned')
+            sod_sum = f'ERROR for {p}({p.id})  MultipleObjectsReturned'
+        except Pelekan.DoesNotExist:
+            print(f'ERROR for {p}({p.id})  DoesNotExist')
+            sod_sum = f'ERROR for {p}({p.id})  DoesNotExist'
+
+    profit_excel.save(filename=f"profit-{now().strftime('%y-%m-%d_%H-%M-%S')}.xlsx")
+    profit_details_excel.save(filename=f"profit_details-{now().strftime('%y-%m-%d_%H-%M-%S')}.xlsx")
+    print(f'finish')
+
+
+def mohasebe_sod_moarefi_all(az_date: datetime, ta_date: datetime):
+    profit_excel = openpyxl.Workbook()
+    profit_sheet = profit_excel.active
+    profit_sheet.title = "sadid Sheet1"
+
+    profit_sheet.cell(row=1, column=1, value="row num")
+    profit_sheet.cell(row=1, column=2, value="id")
+    profit_sheet.cell(row=1, column=3, value="name")
+    profit_sheet.cell(row=1, column=4, value="amount")
+    profit_sheet.cell(row=1, column=5, value="hesab")
+
+    profit_details_excel = openpyxl.Workbook()
+    profit_details_sheet = profit_details_excel.active
+    profit_details_sheet.title = "sadid Sheet1"
+
+    profit_details_sheet.cell(row=1, column=1, value="row num")
+    profit_details_sheet.cell(row=1, column=2, value="Profile_id")
+    profit_details_sheet.cell(row=1, column=3, value="Profile_name")
+    profit_details_sheet.cell(row=1, column=4, value="transaction_id")
+    profit_details_sheet.cell(row=1, column=5, value="percent")
+    profit_details_sheet.cell(row=1, column=6, value="amount")
+    profit_details_sheet.cell(row=1, column=7, value="transaction_date")
+    profit_details_sheet.cell(row=1, column=8, value="date_from")
+    profit_details_sheet.cell(row=1, column=9, value="date_to")
+    profit_details_sheet.cell(row=1, column=10, value="days")
+    profit_details_sheet.cell(row=1, column=11, value="calculated_amount")
+    profit_details_sheet.cell(row=1, column=12, value="تاریخ")
+    profit_details_sheet.cell(row=1, column=13, value="name")
+
+    counter = detail_counter = 1
+    for pr in Profile.objects.all():
+        p: Profile = pr
+        try:
+            sod_list, sod_sum = mohasebe_sod_moarefi_1_nafar(p.id, az_date, ta_date)
 
             counter += 1
             profit_sheet.cell(row=counter, column=1, value=counter - 1)
@@ -570,6 +673,8 @@ def mohasebe_sod_all(az_date: datetime, ta_date: datetime):
                 profit_details_sheet.cell(row=detail_counter, column=10, value=f"{pc.days}")
                 profit_details_sheet.cell(row=detail_counter, column=11, value=f"{pc.calculated_amount}")
                 profit_details_sheet.cell(row=detail_counter, column=12, value=f"{m2sh(pc.transaction.effective_date)}")
+                profit_details_sheet.cell(row=detail_counter, column=13,
+                                          value=f"{pc.transaction.profile.first_name} {pc.transaction.profile.last_name}")
 
         except Pelekan.MultipleObjectsReturned:
             print(f'ERROR for {p}({p.id})  MultipleObjectsReturned')
@@ -578,15 +683,20 @@ def mohasebe_sod_all(az_date: datetime, ta_date: datetime):
             print(f'ERROR for {p}({p.id})  DoesNotExist')
             sod_sum = f'ERROR for {p}({p.id})  DoesNotExist'
 
-    profit_excel.save(filename=f'profit.xlsx')
-    profit_details_excel.save(filename=f'profit_details.xlsx')
+    profit_excel.save(filename=f"profit-moarefi-{now().strftime('%y-%m-%d_%H-%M-%S')}.xlsx")
+    profit_details_excel.save(filename=f"profit-moarefi_details-{now().strftime('%y-%m-%d_%H-%M-%S')}.xlsx")
     print(f'finish')
-    return 'deportee.xlsx'
 
 
 def mohasebe_sod_1_nafar(a: int, az_date: datetime, ta_date: datetime):
     m = Profile.objects.get(id=a)
     sod_list, sod_sum = m.mohasebe_sod_old(az_date=az_date, ta_date=ta_date)
+    return sod_list, sod_sum
+
+
+def mohasebe_sod_moarefi_1_nafar(a: int, az_date: datetime, ta_date: datetime):
+    m = Profile.objects.get(id=a)
+    sod_list, sod_sum = m.mohasebe_sod_moarefi(az_date=az_date, ta_date=ta_date)
     return sod_list, f'{sod_sum:,}'
 
 
