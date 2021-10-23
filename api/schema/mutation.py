@@ -1,5 +1,7 @@
+import graphene
 import graphql_jwt
 from django.contrib.auth import authenticate
+from django.db import IntegrityError
 from django.utils import timezone
 from graphene import String, ID
 from graphene_file_upload.scalars import Upload
@@ -71,39 +73,121 @@ class CreateUser(graphene.Mutation):
         return CreateUser(user=new_user)
 
 
-class profileInput(graphene.InputObjectType):
-    id = graphene.ID()
-    user_id = Int(required=False, description='کاربر متناظر')
+class CreateProfileInput(graphene.InputObjectType):
+    # id = graphene.ID()
+    # user_id = Int(required=False, description='کاربر متناظر')
+    user = UserInput(required=True).Field()
     first_name = String()
     last_name = String()
     code_meli = String()
-    file = Upload(required=True)
+    adress = String()
+    shomare_kart = String()
+    shomare_hesab = String()
+    presenter_id = Int(required=False, description='id معرف')
+    description = String()
+    tel = String()
+    mobile1 = String()
+    mobile2 = String()
+    # file = Upload(required=True)
+
+
+class CreateProfilePayload(graphene.ObjectType):
+    profile = graphene.Field(ProfileType, required=True)
 
 
 class CreateProfile(graphene.Mutation):
-    profile = graphene.Field(ProfileType)
+    """
+    نام کاربری و کلمه عبور معرفی شده برای ساخت کاربر جدید و اتصال آن به پروفایل درحال ساخت استفاده میشود
+    """
 
     class Arguments:
-        input = profileInput(required=True)
+        input_data = CreateProfileInput(required=True, name="input")
+
+    Output = CreateProfilePayload
 
     @permission_required("can_add_profile")
-    def mutate(self, info, input: profileInput):
+    def mutate(self, info, input_data: CreateProfileInput):
         current_user: User = info.context.user
         new_profile: Profile = Profile()
-        if input.user_id is not None:
-            try:
-                user = User.objects.get(id=input.user_id)
-            except:
-                user = None
-            new_profile.user = user
-        new_profile.first_name = input.first_name
-        new_profile.last_name = input.last_name
-        new_profile.code_meli = input.code_meli
-        # for k, v in input.items():
-        #     setattr(new_profile, k, v)
+
+        # حلقه برای ست کردن مقادیر به جز مقادیر خاص که لازم است کنترل شوند
+        for k, v in input_data.items():
+            if k == 'user':
+                try:
+                    new_user: User = User(username=input_data.user.username)
+                    new_user.set_password(raw_password=input_data.user.password)
+                    # new_user.save()
+                    # new_profile.user = new_user
+                except IntegrityError as e:
+                    raise MyException('نام کاربری تکراری است')
+                continue
+            if k == 'presenter_id':
+                try:
+                    presenter: Profile = Profile.objects.get(id=input_data.presenter_id)
+                    # new_profile.presenter = presenter
+                except Profile.DoesNotExist:
+                    raise MyException('معرف پیدا نشد')
+
+            setattr(new_profile, k, v)
+
+        new_user.save()
+        new_profile.user = new_user
 
         new_profile.save()
-        return CreateProfile(new_profile)
+        return CreateProfilePayload(profile=new_profile)
+
+
+class UpdateProfileInput(CreateProfileInput):
+    id = graphene.ID(required=True)
+
+
+class UpdateProfilePayload(CreateProfilePayload):
+    pass
+
+
+class UpdateProfile(graphene.Mutation):
+    """
+    بنابه دلایلی از اینجا نام کاربری و کلمه عبور را نمیتوان تغییر داد
+    """
+    class Arguments:
+        input_data = UpdateProfileInput(required=True, name="input")
+
+    Output = UpdateProfilePayload
+
+    @permission_required("can_add_profile")
+    def mutate(self, info, input_data: UpdateProfileInput):
+        current_user: User = info.context.user
+        try:
+            new_profile: Profile = Profile.objects.get(id=input_data.id)
+        except Profile.DoesNotExist:
+            raise MyException('پروفایل وچود ندارد')
+
+        # حلقه برای ست کردن مقادیر به جز مقادیر خاص که لازم است کنترل شوند
+        for k, v in input_data.items():
+            if k == 'user':
+                try:
+                    new_user: User = User.objects.get(username=new_profile.user)
+                    # new_user.username = input_data.user.username
+                    # new_user.set_password(raw_password=input_data.user.password)
+                    # new_user.save()
+                    # new_profile.user = new_user
+                except IntegrityError as e:
+                    raise MyException('نام کاربری تکراری است')
+                except User.DoesNotExist:
+                    raise MyException('کاربر وجود ندارد')
+                continue
+            if k == 'presenter_id':
+                try:
+                    presenter: Profile = Profile.objects.get(id=input_data.presenter_id)
+                    # new_profile.presenter=presenter
+                except Profile.DoesNotExist:
+                    raise MyException('معرف پیدا نشد')
+
+            setattr(new_profile, k, v)
+
+        # new_user.save()
+        new_profile.save()
+        return UpdateProfilePayload(profile=new_profile)
 
 
 class Mutation(graphene.ObjectType):
@@ -111,6 +195,7 @@ class Mutation(graphene.ObjectType):
     create_transaction = CreateTransaction.Field()
     create_user = CreateUser.Field(description='ایجاد کاربر')
     create_profile = CreateProfile.Field()
+    update_profile = UpdateProfile.Field()
     # create_tarakonesh = CreateTarakonesh.Field()
     token_auth = graphql_jwt.ObtainJSONWebToken.Field()
     delete_token = graphql_jwt.Revoke.Field()

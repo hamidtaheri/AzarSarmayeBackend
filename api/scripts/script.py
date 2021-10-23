@@ -2,7 +2,8 @@
 import datetime
 
 from django.utils.datetime_safe import strftime
-from django.utils.timezone import now
+from django.utils.timezone import now,localtime
+from jdatetime import jalali
 
 from api.models import *
 import openpyxl
@@ -32,11 +33,10 @@ ta_date = sh2m('1400/07/30')
 # list_sod, sum_sod = mohasebe_sod_1_nafar(325, az_date, ta_date)
 # print(sum_sod)
 
-mohasebe_sod_all(az_date, ta_date)
+# mohasebe_sod_all(az_date, ta_date)
 
-# mohasebe_sod_moarefi_all(az_date, ta_date)
-# print(now())
-# print(now().strftime('%y-%m-%d_%H-%M-%S'))
+mohasebe_sod_moarefi_all(az_date, ta_date)
+
 
 
 def days_after_transaction_start():

@@ -20,7 +20,7 @@ class MyException(Exception):
 
 
 day_in_month = 30
-day_for_calculate_presenter_profit = 18000  # تعدادروزی که پس از آن سود معرفی به معرف تعلق نمیگیرد
+day_for_calculate_presenter_profit = 180  # تعدادروزی که پس از آن سود معرفی به معرف تعلق نمیگیرد
 
 
 def get_storage_path(instance, filename):
@@ -374,17 +374,16 @@ class Transaction(models.Model):
         """
         محاسبه درصد سود معرف بر اساس پلکان
         """
-        # if self.effective_date < datetime.date(2021, 0o6, 22):  # 1400/04/01
-        #     return self.percent
-        # else:
-        mojodi = self.profile.mojodi_ta(ta=self.effective_date)
-        mojodi_moarefishodeha = self.profile.presenter.mojodi_moarefishodeha_ta(ta_date=ta_date)
-        mojodi_kol = mojodi + mojodi_moarefishodeha
-        # محاسبه درصد سود معرف بر اساس پلکان
-        percent = Pelekan.objects.get(kind_id=2, az__lte=mojodi_kol, ta__gte=mojodi_kol).percent
-        # محاسبه سود بر اساس درصد ثبت شده در رکورد سرمایه گزار
-        # percent = self.profile.presenter_percent
-        return percent
+        if self.effective_date <= sh2m('1400/07/30'):
+            # محاسبه سود بر اساس درصد ثبت شده در رکورد تراکنش
+            return self.DarMelyoon_Moaref
+        else:
+            mojodi = self.profile.mojodi_ta(ta=self.effective_date)
+            mojodi_moarefishodeha = self.profile.presenter.mojodi_moarefishodeha_ta(ta_date=ta_date)
+            mojodi_kol = mojodi + mojodi_moarefishodeha
+            # محاسبه درصد سود معرف بر اساس پلکان
+            percent = Pelekan.objects.get(kind_id=2, az__lt=mojodi_kol, ta__gte=mojodi_kol).percent
+            return percent
 
     def profit_calculator(self, az_date: datetime.date, ta_date: datetime.date):
         """
@@ -610,8 +609,8 @@ def mohasebe_sod_all(az_date: datetime, ta_date: datetime):
             print(f'ERROR for {p}({p.id})  DoesNotExist')
             sod_sum = f'ERROR for {p}({p.id})  DoesNotExist'
 
-    profit_excel.save(filename=f"profit-{now().strftime('%y-%m-%d_%H-%M-%S')}.xlsx")
-    profit_details_excel.save(filename=f"profit_details-{now().strftime('%y-%m-%d_%H-%M-%S')}.xlsx")
+    profit_excel.save(filename=f"profit-{jdatetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.xlsx")
+    profit_details_excel.save(filename=f"profit_details-{jdatetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.xlsx")
     print(f'finish')
 
 
@@ -625,6 +624,8 @@ def mohasebe_sod_moarefi_all(az_date: datetime, ta_date: datetime):
     profit_sheet.cell(row=1, column=3, value="name")
     profit_sheet.cell(row=1, column=4, value="amount")
     profit_sheet.cell(row=1, column=5, value="hesab")
+    profit_sheet.cell(row=1, column=6, value="محاسبه شده توسط نرم افزار قدیمی")
+    profit_sheet.cell(row=1, column=7, value="اختلاف")
 
     profit_details_excel = openpyxl.Workbook()
     profit_details_sheet = profit_details_excel.active
@@ -656,6 +657,17 @@ def mohasebe_sod_moarefi_all(az_date: datetime, ta_date: datetime):
             profit_sheet.cell(row=counter, column=3, value=f"{p.first_name} {p.last_name}")
             profit_sheet.cell(row=counter, column=4, value=f"{sod_sum}")
             profit_sheet.cell(row=counter, column=5, value=p.shomare_hesab)
+            old_calculated_value = 0
+            try:
+                old_calculated: Transaction = Transaction.objects.filter(profile=pr, kind_id=5,
+                                                                         effective_date=ta_date).aggregate(
+                    Sum('amount'))
+                old_calculated_value = old_calculated['amount__sum'] or 0
+            except IndexError:
+                pass
+
+            profit_sheet.cell(row=counter, column=6, value=old_calculated_value)
+            profit_sheet.cell(row=counter, column=7, value=sod_sum - old_calculated_value)
 
             for pc in sod_list:
                 detail_counter = detail_counter + 1
@@ -683,8 +695,9 @@ def mohasebe_sod_moarefi_all(az_date: datetime, ta_date: datetime):
             print(f'ERROR for {p}({p.id})  DoesNotExist')
             sod_sum = f'ERROR for {p}({p.id})  DoesNotExist'
 
-    profit_excel.save(filename=f"profit-moarefi-{now().strftime('%y-%m-%d_%H-%M-%S')}.xlsx")
-    profit_details_excel.save(filename=f"profit-moarefi_details-{now().strftime('%y-%m-%d_%H-%M-%S')}.xlsx")
+    profit_excel.save(filename=f"profit-moarefi-{jdatetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.xlsx")
+    profit_details_excel.save(
+        filename=f"profit-moarefi_details-{jdatetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.xlsx")
     print(f'finish')
 
 
@@ -697,7 +710,7 @@ def mohasebe_sod_1_nafar(a: int, az_date: datetime, ta_date: datetime):
 def mohasebe_sod_moarefi_1_nafar(a: int, az_date: datetime, ta_date: datetime):
     m = Profile.objects.get(id=a)
     sod_list, sod_sum = m.mohasebe_sod_moarefi(az_date=az_date, ta_date=ta_date)
-    return sod_list, f'{sod_sum:,}'
+    return sod_list, sod_sum
 
 
 def shamsi_to_miladi(j_date: str, sep: str = "/") -> datetime.date:
