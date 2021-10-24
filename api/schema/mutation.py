@@ -1,5 +1,6 @@
 import graphene
 import graphql_jwt
+from IPython.core.release import description
 from django.contrib.auth import authenticate
 from django.db import IntegrityError
 from django.utils import timezone
@@ -10,6 +11,7 @@ from graphql_jwt.exceptions import PermissionDenied
 from graphql_jwt.shortcuts import get_token
 
 from api.schema.query import *
+from settings import HAVE_NOT_PERMISSION
 
 
 class Login(graphene.Mutation):
@@ -31,21 +33,87 @@ class Login(graphene.Mutation):
         return Login(user=user, token=token)
 
 
+class CreateTransactionInput(graphene.InputObjectType):
+    """
+        ورودی های لازم برای ایجاد تراکنش
+    """
+    profile_id = graphene.Int(required=True, description='کاربر تراکنش')
+    effective_date = graphene.Date(required=True, description='تاریخ موثر')
+    amount = graphene.Int(required=True, description='مبلغ')
+    kind_id = graphene.Int(required=True, description='id نوع تراکنش')
+    description = String(description='توضیحات')
+
+
+class CreateTransactionPayload(graphene.ObjectType):
+    transaction = graphene.Field(TransactionType, required=True)
+
+
 class CreateTransaction(graphene.Mutation):
-    transaction = graphene.Field(TransactionType)
+    """
+    ایجاد تراکنش
+    """
 
     class Arguments:
-        profile_id = graphene.Int(required=True, description='کاربر تراکنش')
-        date = graphene.Date(required=True)
-        amount = graphene.Int(required=True)
-        transact_types = Transaction_Type_Enum(required=True)
+        input_data = CreateTransactionInput(required=True, name="input")
 
-    def mutate(self, info, user_id, date, amount, transact_type):
-        # user = User.objects.get(id=user_id)
-        profile = Profile.objects.get(id=user_id)
-        tr = Transaction_old.objects.create(profule=profile, amount=amount, date=date, type=transact_type.value)
+    Output = CreateTransactionPayload
 
-        return CreateTransaction(transaction=tr)
+    @login_required
+    def mutate(self, info, input_data: CreateTransactionInput):
+        current_user: User = info.context.user
+        profile = Profile.objects.get(id=input_data.profile_id)
+        if not current_user.has_perm('add_transaction_for_all'):  # کاربر دسترسی ندارد
+            #  فیلتر بر اساس کاربر جاری
+            profile = Profile.objects.get(user=current_user)
+        tr = Transaction.objects.create(profile=profile, amount=input_data.amount,
+                                        effective_date=input_data.effective_date,
+                                        kind_id=input_data.kind_id, description=input_data.description,
+                                        created_by=current_user, date_time=now(), percent=0)
+
+        return CreateTransactionPayload(transaction=tr)
+
+
+class UpdateTransactionInput(graphene.InputObjectType):
+    """
+    مبلغ را نمیتوان به روز کرد
+    """
+    id = graphene.ID(required=True)
+
+    profile_id = graphene.Int(required=True, description='کاربر تراکنش')
+    effective_date = graphene.Date(required=True, description='تاریخ موثر')
+    # amount = graphene.Int(required=True, description='مبلغ')
+    kind_id = graphene.Int(required=True, description='id نوع تراکنش')
+    description = String(description='توضیحات')
+
+
+class UpdateTransactionPayload(CreateTransactionPayload):
+    pass
+
+
+class UpdateTransaction(graphene.Mutation):
+    class Arguments:
+        input_data = UpdateTransactionInput(required=True, name="input")
+
+    Output = UpdateTransactionPayload
+
+    def mutate(self, info, input_data: UpdateTransactionInput):
+        current_user: User = info.context.user
+        profile = Profile.objects.get(id=input_data.profile_id)
+        if not current_user.has_perm('add_transaction_for_all'):  # کاربر دسترسی ندارد
+            #  فیلتر بر اساس کاربر جاری
+            if(profile.user != current_user):
+                raise MyException(HAVE_NOT_PERMISSION)
+            profile = Profile.objects.get(user=current_user)
+        transaction = Transaction.objects.get(id=input_data.id, profile=profile)
+        transaction.profile = profile
+        transaction.effective_date = input_data.effective_date
+        transaction.kind_id = input_data.kind_id
+        transaction.description = input_data.description
+        transaction.modified_by = current_user
+        transaction.modified = now()
+        transaction.save()
+
+        return UpdateTransactionPayload(transaction=transaction)
 
 
 class UserInput(graphene.InputObjectType):
@@ -139,6 +207,7 @@ class CreateProfile(graphene.Mutation):
 
 class UpdateProfileInput(CreateProfileInput):
     id = graphene.ID(required=True)
+    user = UserInput(required=False).Field()  # در به روزرسانی کابر اجباری نیست
 
 
 class UpdateProfilePayload(CreateProfilePayload):
@@ -149,18 +218,23 @@ class UpdateProfile(graphene.Mutation):
     """
     بنابه دلایلی از اینجا نام کاربری و کلمه عبور را نمیتوان تغییر داد
     """
+
     class Arguments:
         input_data = UpdateProfileInput(required=True, name="input")
 
     Output = UpdateProfilePayload
 
-    @permission_required("can_add_profile")
+    @login_required
     def mutate(self, info, input_data: UpdateProfileInput):
         current_user: User = info.context.user
-        try:
-            new_profile: Profile = Profile.objects.get(id=input_data.id)
-        except Profile.DoesNotExist:
-            raise MyException('پروفایل وچود ندارد')
+        if not current_user.has_perm('can_edit_profile_for_all'):  # کاربر دسترسی ندارد
+            #  فیلتر بر اساس کاربر جاری
+            new_profile = Profile.objects.get(user=current_user)
+        else:
+            try:
+                new_profile: Profile = Profile.objects.get(id=input_data.id)
+            except Profile.DoesNotExist:
+                raise MyException('پروفایل وچود ندارد')
 
         # حلقه برای ست کردن مقادیر به جز مقادیر خاص که لازم است کنترل شوند
         for k, v in input_data.items():
@@ -193,6 +267,7 @@ class UpdateProfile(graphene.Mutation):
 class Mutation(graphene.ObjectType):
     login = Login.Field()
     create_transaction = CreateTransaction.Field()
+    update_transaction = UpdateTransaction.Field()
     create_user = CreateUser.Field(description='ایجاد کاربر')
     create_profile = CreateProfile.Field()
     update_profile = UpdateProfile.Field()

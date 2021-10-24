@@ -219,6 +219,7 @@ class Profile(models.Model):
 
         permissions = (
             ("can_add_profile", "ایجاد پروفایل"),
+            ("view_all_profiles", " مشاهده همه پروفایل ها"),
             ("can_edit_profile_for_self", "ویرایش پروفایل خودش"),
             ("can_edit_profile_for_all", "ویرایش پروفایل دیگران"),
             ("can_delete_profile_for_all", "حذف پروفایل"),
@@ -348,7 +349,7 @@ class Transaction(models.Model):
     created_by = models.ForeignKey(get_user_model(), on_delete=models.DO_NOTHING, blank=False, null=False,
                                    related_name='transactions_create_by', editable=False)
     modified = models.DateTimeField(auto_now=True, editable=False)
-    modified_by = models.ForeignKey(get_user_model(), on_delete=models.DO_NOTHING, blank=False, null=False,
+    modified_by = models.ForeignKey(get_user_model(), on_delete=models.DO_NOTHING, blank=True, null=True,
                                     related_name='transactions_modified_by', editable=False)
 
     def __str__(self):
@@ -356,6 +357,11 @@ class Transaction(models.Model):
 
     class Meta:
         ordering = ['effective_date']
+        permissions = (
+            ("view_all_transactions", "مشاهده همه تراکنش ها "),
+            ("add_transaction_for_all", "میتواند برای دیگران تراکنش ثبت کند"),
+
+        )
 
     def percent_calculator(self) -> float:
         """

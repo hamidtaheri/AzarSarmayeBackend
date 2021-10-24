@@ -3,7 +3,7 @@ from django.db.models import Q
 from graphene import relay, Enum, Int, Date
 from graphene_django import DjangoObjectType
 from graphene_django.filter import DjangoFilterConnectionField
-from graphql_jwt.decorators import login_required, staff_member_required
+from graphql_jwt.decorators import login_required, staff_member_required, permission_required
 
 from api.models import *
 
@@ -32,14 +32,11 @@ class PostType(DjangoObjectType):
 
 class UserType(DjangoObjectType):
     """
-    me
+    اطلاعات کاربر جاری
     """
 
     class Meta:
         model = User
-        # exclude = ("password",)
-        # filter_fields = ['id', 'last_name', 'mobile', ]
-        # interfaces = (relay.Node,)
         fields = ('id', 'first_name', 'last_name', 'username', 'email', 'profile', 'last_login')
 
 
@@ -160,9 +157,9 @@ class TransactionType(DjangoObjectType):
 
     class Meta:
         model = Transaction
-        fields = ('profile', 'Tarikh_Moaser', 'date_time', 'amount', 'percent', 'kind', 'description',)
+        fields = ('profile', 'effective_date', 'date_time', 'amount', 'percent', 'kind', 'description',)
         filter_fields = {'profile__id': ['exact'],
-                         'date_time': ['lte', 'gte', 'range'],
+                         'effective_date': ['lte', 'gte', 'range'],
                          'kind__id': ['exact'], }
         # exclude = ('tarikh')
         connection_class = count_sum_tarakonesh_ConnectionBase
@@ -221,31 +218,27 @@ class Query(graphene.ObjectType):
 
     @login_required
     def resolve_transactions(root, info, **kwargs):
-        user: get_user_model() = info.context.user
+        current_user: get_user_model() = info.context.user
         # if user.is_anonymous or user is None:
         #     raise Exception(HAVE_NOT_PERMISSION)
+        transactions = Transaction.objects.all()
 
-        # if user.has_perm('can_view_transaction_for_all'):
-        #     filter =
-        transactions = Transaction_old.objects.all()
+        if not current_user.has_perm('view_all_transactions'):  # کاربر دسترسی ندارد
+            #  فیلتر بر اساس کاربر جاری
+            transactions = transactions.filter(profile__user=current_user)
+
         return transactions
 
     @login_required
     def resolve_profiles(self, info, **kwargs):
         current_user: User = info.context.user
-        if current_user.is_superuser:
-            return Profile.objects.all()
-        else:
-            t = Profile.objects.filter(user=current_user)
-            return t
+        profiles = Profile.objects.all()
+        if not current_user.has_perm('view_all_profiles'):  # کاربر دسترسی ندارد
+            #  فیلتر بر اساس کاربر جاری
+            profiles = Profile.objects.filter(user=current_user)
 
-    def resolve_tarakoneshs(self, info, **kwargs):
-        current_user: User = info.context.user
-        if current_user.is_superuser:
-            return Transaction.objects.all()
-        else:
-            tr = Transaction.objects.filter(shakhs__user=current_user)
-            return tr
+        return profiles
+
 
     def resolve_transaction_kinds(root, info):
         return TransactionKind.objects.all()
