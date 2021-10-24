@@ -76,7 +76,8 @@ class ProfileType(DjangoObjectType):
     id = graphene.ID(source='pk', required=True)
     seporde = graphene.Float(source='seporde')  # اتصال به @property
     moarefi_shode_ha = graphene.List(of_type=MoarefiShodeHaType)
-    moaref = graphene.String(description='معرف')
+    presenter = graphene.String(description='معرف')
+    presenter_id = graphene.Int(description='معرف id')
     images = graphene.List(of_type=ImageType)
     mohasebe_sod = graphene.List(ProfitCalculateType,
                                  description='نمایش جزیات محاسبه سود از تاریخ تا تاریخ برای کاربر جاری',
@@ -96,6 +97,7 @@ class ProfileType(DjangoObjectType):
             'description', 'tel', 'mobile1', 'transactions', 'images')
         filter_fields = {
             'id': ['exact'],
+            'presenter__id': ['exact'],
             'last_name': ['exact', 'icontains', 'istartswith'],
             'code_meli': ['exact', 'icontains', 'istartswith'],
             'mobile1': ['exact', 'icontains', 'istartswith'],
@@ -107,8 +109,12 @@ class ProfileType(DjangoObjectType):
         current_user: User = info.context.user
         return Profile.objects.filter(presenter=self).all()
 
-    def resolve_moaref(self: Profile, info):
+    def resolve_presenter(self: Profile, info):
         moaref = self.presenter or ''
+        return moaref
+
+    def resolve_presenter_id(self: Profile, info):
+        moaref = self.presenter.id or ''
         return moaref
 
     def resolve_images(self, info):
