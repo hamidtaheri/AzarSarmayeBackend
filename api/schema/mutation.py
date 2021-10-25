@@ -9,6 +9,7 @@ from graphene_file_upload.scalars import Upload
 from graphql_jwt.decorators import permission_required
 from graphql_jwt.exceptions import PermissionDenied
 from graphql_jwt.shortcuts import get_token
+from graphene_file_upload.scalars import Upload
 
 from api.schema.query import *
 from settings import HAVE_NOT_PERMISSION
@@ -31,6 +32,30 @@ class Login(graphene.Mutation):
             user.save(update_fields=['last_login'])
             token = get_token(user)
         return Login(user=user, token=token)
+
+
+class CreateImageInput(graphene.InputObjectType):
+    image = Upload(required=True)
+    kind_id = graphene.Int()
+    description = graphene.String()
+
+
+class createImagePayload(graphene.ObjectType):
+    image = graphene.Field(ImageType, required=True)
+
+
+class UpdateImageInput(CreateImageInput):
+    image = Upload(required=False)
+    id = graphene.ID(required=True)
+
+
+class UpdateImagePayload(CreateImageInput):
+    pass
+
+
+# class UpdateImage(graphene.Mutation):
+#     class Arguments:
+#         input_data = UpdateImageInput(required=True, name="input")
 
 
 class CreateTransactionInput(graphene.InputObjectType):
@@ -101,7 +126,7 @@ class UpdateTransaction(graphene.Mutation):
         profile = Profile.objects.get(id=input_data.profile_id)
         if not current_user.has_perm('add_transaction_for_all'):  # کاربر دسترسی ندارد
             #  فیلتر بر اساس کاربر جاری
-            if(profile.user != current_user):
+            if profile.user != current_user:
                 raise MyException(HAVE_NOT_PERMISSION)
             profile = Profile.objects.get(user=current_user)
         transaction = Transaction.objects.get(id=input_data.id, profile=profile)
@@ -156,6 +181,7 @@ class CreateProfileInput(graphene.InputObjectType):
     tel = String()
     mobile1 = String()
     mobile2 = String()
+    images = graphene.List(CreateImageInput)
     # file = Upload(required=True)
 
 
@@ -208,6 +234,7 @@ class CreateProfile(graphene.Mutation):
 class UpdateProfileInput(CreateProfileInput):
     id = graphene.ID(required=True)
     user = UserInput(required=False).Field()  # در به روزرسانی کابر اجباری نیست
+    images = graphene.List(UpdateImageInput)
 
 
 class UpdateProfilePayload(CreateProfilePayload):
@@ -256,7 +283,14 @@ class UpdateProfile(graphene.Mutation):
                     # new_profile.presenter=presenter
                 except Profile.DoesNotExist:
                     raise MyException('معرف پیدا نشد')
+            if k == 'images':
+                for img in input_data.images:
+                    new_img = Image.objects.get_or_create(id=img.id, object_id=new_profile.id, content_type_id=4)[0]
+                    for ki, vi in img.items():
+                        setattr(new_img, ki, vi)
+                    new_img.save()
 
+                continue
             setattr(new_profile, k, v)
 
         # new_user.save()
