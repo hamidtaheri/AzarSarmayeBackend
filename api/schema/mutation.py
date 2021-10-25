@@ -11,9 +11,8 @@ from graphql_jwt.shortcuts import get_token
 from graphene_file_upload.scalars import Upload
 
 from api.schema.query import *
-from settings import HAVE_NOT_PERMISSION
-
-
+# from settings import HAVE_NOT_PERMISSION
+HAVE_NOT_PERMISSION = 'you have not permission !!'
 class Login(graphene.Mutation):
     user = graphene.Field(UserType)
     token = graphene.String()
