@@ -1,6 +1,5 @@
 import graphene
 import graphql_jwt
-from IPython.core.release import description
 from django.contrib.auth import authenticate
 from django.db import IntegrityError
 from django.utils import timezone
