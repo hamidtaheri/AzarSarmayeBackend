@@ -4,15 +4,16 @@ from django.contrib.auth import authenticate
 from django.db import IntegrityError
 from django.utils import timezone
 from graphene import String, ID
-from graphene_file_upload.scalars import Upload
-from graphql_jwt.decorators import permission_required
 from graphql_jwt.exceptions import PermissionDenied
 from graphql_jwt.shortcuts import get_token
 from graphene_file_upload.scalars import Upload
 
 from api.schema.query import *
+
 # from settings import HAVE_NOT_PERMISSION
 HAVE_NOT_PERMISSION = 'you have not permission !!'
+
+
 class Login(graphene.Mutation):
     user = graphene.Field(UserType)
     token = graphene.String()
@@ -62,9 +63,10 @@ class CreateTransactionInput(graphene.InputObjectType):
     """
     profile_id = graphene.Int(required=True, description='کاربر تراکنش')
     effective_date = graphene.Date(required=True, description='تاریخ موثر')
-    amount = graphene.Int(required=True, description='مبلغ')
+    amount = graphene.Float(required=True, description='مبلغ')
     kind_id = graphene.Int(required=True, description='id نوع تراکنش')
     description = String(description='توضیحات')
+    images = graphene.List(CreateImageInput, required=False, description='پیوست ها')
 
 
 class CreateTransactionPayload(graphene.ObjectType):
@@ -87,11 +89,18 @@ class CreateTransaction(graphene.Mutation):
         profile = Profile.objects.get(id=input_data.profile_id)
         if not current_user.has_perm('add_transaction_for_all'):  # کاربر دسترسی ندارد
             #  فیلتر بر اساس کاربر جاری
-            profile = Profile.objects.get(user=current_user)
+            if current_user != profile.user:
+                raise MyException('عدم دسترسی')
         tr = Transaction.objects.create(profile=profile, amount=input_data.amount,
                                         effective_date=input_data.effective_date,
                                         kind_id=input_data.kind_id, description=input_data.description,
                                         created_by=current_user, date_time=now(), percent=0)
+        if input_data.images:
+            for img in input_data.images:
+                img: CreateImageInput = img
+                new_img = Image.objects.create(object_id=tr.id, content_type_id=7, image=img.image,
+                                               description=img.description, kind_id=img.kind_id)
+                new_img.save()
 
         return CreateTransactionPayload(transaction=tr)
 
@@ -200,6 +209,7 @@ class CreateProfile(graphene.Mutation):
     @permission_required("can_add_profile")
     def mutate(self, info, input_data: CreateProfileInput):
         current_user: User = info.context.user
+        new_profile_id = Profile.objects.creation_counter
         new_profile: Profile = Profile()
 
         # حلقه برای ست کردن مقادیر به جز مقادیر خاص که لازم است کنترل شوند
@@ -208,8 +218,8 @@ class CreateProfile(graphene.Mutation):
                 try:
                     new_user: User = User(username=input_data.user.username)
                     new_user.set_password(raw_password=input_data.user.password)
-                    # new_user.save()
-                    # new_profile.user = new_user
+                    new_user.save()
+                    new_profile.user = new_user
                 except IntegrityError as e:
                     raise MyException('نام کاربری تکراری است')
                 continue
@@ -219,11 +229,18 @@ class CreateProfile(graphene.Mutation):
                     # new_profile.presenter = presenter
                 except Profile.DoesNotExist:
                     raise MyException('معرف پیدا نشد')
+            if k == 'images':
+                for img in input_data.images:
+                    new_img = Image.objects.create(object_id=new_profile_id, content_type_id=4)
+                    for ki, vi in img.items():
+                        setattr(new_img, ki, vi)
+                    new_img.save()
 
+                continue
             setattr(new_profile, k, v)
 
-        new_user.save()
-        new_profile.user = new_user
+        # new_user.save()
+        # new_profile.user = new_user
 
         new_profile.save()
         return CreateProfilePayload(profile=new_profile)

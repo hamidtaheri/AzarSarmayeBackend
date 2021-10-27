@@ -154,10 +154,12 @@ class ProfileType(DjangoObjectType):
 
 class TransactionType(DjangoObjectType):
     id = graphene.ID(source='pk', required=True)
+    amount = graphene.Float(required=True, description='مبلغ')
+    images = graphene.List(of_type=ImageType)
 
     class Meta:
         model = Transaction
-        fields = ('profile', 'effective_date', 'date_time', 'amount', 'percent', 'kind', 'description',)
+        fields = ('profile', 'effective_date', 'date_time', 'amount', 'percent', 'kind', 'description', 'images')
         filter_fields = {'profile__id': ['exact'],
                          'effective_date': ['lte', 'gte', 'range'],
                          'kind__id': ['exact'], }
@@ -168,6 +170,17 @@ class TransactionType(DjangoObjectType):
         # order_by = OrderingFilter(
         #     fields=('date_time')
         # )
+
+    def resolve_amount(self, info):
+        return self.amount
+
+    def resolve_images(self, info):
+        current_user: User = info.context.user
+        transaction: Transaction = self
+        ct = ContentType.objects.get_for_model(self)
+
+        images = Image.objects.filter(content_type=ct, object_id=self.id)
+        return images
 
 
 class TransactionKindType(DjangoObjectType):
@@ -238,7 +251,6 @@ class Query(graphene.ObjectType):
             profiles = Profile.objects.filter(user=current_user)
 
         return profiles
-
 
     def resolve_transaction_kinds(root, info):
         return TransactionKind.objects.all()

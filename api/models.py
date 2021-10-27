@@ -24,7 +24,6 @@ day_for_calculate_presenter_profit = 180  # تعدادروزی که پس از آ
 
 
 def get_storage_path(instance, filename):
-    # if instance.content_type.model == 'order':
     return f"{instance.content_type.model}/{instance.object_id}_{randrange(100, 999)}_{filename}"
 
 
@@ -343,6 +342,8 @@ class Transaction(models.Model):
     percent = models.IntegerField()
     # صرفا برای محاسبه مهر۱۴۰۰ برای اینکه محاسبه سود معرف به شیوه قدیمی محاسبه شود
     DarMelyoon_Moaref = models.IntegerField(blank=True, null=True)
+    images = GenericRelation(Image, related_name='transaction_images')
+
 
     # logging fields
     created = models.DateTimeField(auto_now_add=True, editable=False)
