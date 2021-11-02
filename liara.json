@@ -8,6 +8,9 @@
     {
       "name": "dumpdata",
       "mountTo": "dumpdata"
+    },{
+      "name": "media",
+      "mountTo": "media"
     }
   ]
 }
