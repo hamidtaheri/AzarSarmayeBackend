@@ -62,9 +62,11 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'crum.CurrentRequestUserMiddleware',  # برای دسترسی به کاربر جاری در مدل
 ]
-CORS_ALLOWED_ORIGINS = [
-    'http://localhost:8080',
-]
+CORS_ALLOW_ALL_ORIGINS = True  # If this is used then `CORS_ALLOWED_ORIGINS` will not have any effect
+
+# CORS_ALLOWED_ORIGINS = [
+#     'http://localhost:8080',
+# ]
 ROOT_URLCONF = 'backend.urls'
 
 TEMPLATES = [
