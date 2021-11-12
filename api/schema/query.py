@@ -39,7 +39,8 @@ class UserType(DjangoObjectType):
     class Meta:
         model = User
         fields = (
-        'id', 'first_name', 'last_name', 'username', 'email', 'profile', 'last_login', 'user_permissions', 'groups')
+            'id', 'first_name', 'last_name', 'username', 'email', 'profile', 'last_login', 'user_permissions',)
+        # groups
 
 
 class Transaction_Type_Enum(Enum):
