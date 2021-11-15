@@ -91,15 +91,23 @@ class CreateTransaction(graphene.Mutation):
             #  فیلتر بر اساس کاربر جاری
             if current_user != profile.user:
                 raise MyException('عدم دسترسی')
-        tr = Transaction.objects.create(profile=profile, amount=input_data.amount,
-                                        effective_date=input_data.effective_date,
-                                        kind_id=input_data.kind_id, description=input_data.description,
-                                        created_by=current_user, date_time=now(), percent=0)
+        # tr = Transaction.objects.create(profile=profile, amount=input_data.amount,
+        #                                 effective_date=input_data.effective_date,
+        #                                 kind_id=input_data.kind_id, description=input_data.description,
+        #                                 created_by=current_user, date_time=now(), percent=0)
+        input_dict = input_data.__dict__
+        tr = Transaction.objects.create(input_dict, date_time=now(), percent=0)
+        tr_wf_state: TransactionWorkFlowState = TransactionWorkFlowState()
+        tr_wf_state.transaction = tr
+        tr_wf_state.work_flow_state = WorkFlowState.objects.get(id=100)
+        tr_wf_state.date = now()
+        tr_wf_state.user = current_user
+        tr_wf_state.save()
         if input_data.images:
             for img in input_data.images:
-                img: CreateImageInput = img
-                new_img = Image.objects.create(object_id=tr.id, content_type_id=7, image=img.image,
-                                               description=img.description, kind_id=img.kind_id)
+                img_in: CreateImageInput = img
+                new_img = Image.objects.create(object_id=tr.id, content_type_id=7, image=img_in.image,
+                                               description=img_in.description, kind_id=img_in.kind_id)
                 new_img.save()
 
         return CreateTransactionPayload(transaction=tr)
