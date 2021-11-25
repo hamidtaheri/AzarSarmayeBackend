@@ -8,6 +8,7 @@ from graphql_jwt.exceptions import PermissionDenied
 from graphql_jwt.shortcuts import get_token
 from graphene_file_upload.scalars import Upload
 
+import OTP
 from api.schema.query import *
 
 # from settings import HAVE_NOT_PERMISSION
@@ -33,13 +34,53 @@ class Login(graphene.Mutation):
         return Login(user=user, token=token)
 
 
+class LoginOTP(graphene.Mutation):
+    class Arguments:
+        username = graphene.String(required=True)
+        password = graphene.String(required=True)
+        otp = graphene.String(required=False)
+
+    user = graphene.Field(UserType)
+    token = graphene.String()
+    ok = graphene.Boolean(required=True)
+    errors = graphene.List(graphene.String, required=True)
+
+    def mutate(self, info, username, password, otp=None):
+        errors = []
+
+        user = authenticate(username=username, password=password)
+        if user is None:
+            errors.append('نام کاربری یا کله عبور نادرست است.')
+        else:
+            try:
+                phone = user.profile.mobile1
+            except:
+                errors.append('اشکال در کاربر')
+            otp_creator = OTP.OTP()
+            if otp is None or otp == '':
+                if otp_creator.generate_otp_code(phone=phone):
+                    errors.append(' رمز یکبار مصرف 5 رقمی از طریق پیامک برای شما ارسال شد.')
+                else:
+                    errors.append('حداقل فاصله بین ارسال رمز یکبار مصرف ۱۲۰ ثانیه است.')
+            else:
+                if otp_creator.validate_otp_code(phone=phone, code=otp):
+                    user.last_login = timezone.now()
+                    user.save(update_fields=['last_login'])
+                    token = get_token(user)
+
+        if errors:
+            return LoginOTP(ok=False, errors=errors)
+        else:
+            return LoginOTP(user=user, token=token, ok=True, errors=errors)
+
+
 class CreateImageInput(graphene.InputObjectType):
     image = Upload(required=True)
     kind_id = graphene.Int()
     description = graphene.String()
 
 
-class createImagePayload(graphene.ObjectType):
+class CreateImagePayload(graphene.ObjectType):
     image = graphene.Field(ImageType, required=True)
 
 
@@ -91,15 +132,23 @@ class CreateTransaction(graphene.Mutation):
             #  فیلتر بر اساس کاربر جاری
             if current_user != profile.user:
                 raise MyException('عدم دسترسی')
-        tr = Transaction.objects.create(profile=profile, amount=input_data.amount,
-                                        effective_date=input_data.effective_date,
-                                        kind_id=input_data.kind_id, description=input_data.description,
-                                        created_by=current_user, date_time=now(), percent=0)
+        # tr = Transaction.objects.create(profile=profile, amount=input_data.amount,
+        #                                 effective_date=input_data.effective_date,
+        #                                 kind_id=input_data.kind_id, description=input_data.description,
+        #                                 created_by=current_user, date_time=now(), percent=0)
+        input_dict = input_data.__dict__
+        tr = Transaction.objects.create(input_dict, date_time=now(), percent=0)
+        tr_wf_state: TransactionWorkFlowState = TransactionWorkFlowState()
+        tr_wf_state.transaction = tr
+        tr_wf_state.work_flow_state = WorkFlowState.objects.get(id=100)
+        tr_wf_state.date = now()
+        tr_wf_state.user = current_user
+        tr_wf_state.save()
         if input_data.images:
             for img in input_data.images:
-                img: CreateImageInput = img
-                new_img = Image.objects.create(object_id=tr.id, content_type_id=7, image=img.image,
-                                               description=img.description, kind_id=img.kind_id)
+                img_in: CreateImageInput = img
+                new_img = Image.objects.create(object_id=tr.id, content_type_id=7, image=img_in.image,
+                                               description=img_in.description, kind_id=img_in.kind_id)
                 new_img.save()
 
         return CreateTransactionPayload(transaction=tr)
@@ -315,6 +364,7 @@ class UpdateProfile(graphene.Mutation):
 
 class Mutation(graphene.ObjectType):
     login = Login.Field()
+    login_otp = LoginOTP.Field()
     create_transaction = CreateTransaction.Field()
     update_transaction = UpdateTransaction.Field()
     create_user = CreateUser.Field(description='ایجاد کاربر')

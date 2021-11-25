@@ -1,5 +1,6 @@
 import datetime
 from random import randrange
+from typing import List
 
 import jdatetime
 import openpyxl
@@ -36,6 +37,44 @@ class User(AbstractUser):
     permissions = (
         ("can_add_user", "میتواند کاربر جدید ایجاد کند"),
     )
+
+    def get_user_wf_permissions(self):
+        # ("wf_data_entry", "ثبت اطلاعات (در گردش کار)"), 100
+        # ("wf_data_check", "بررسی اطلاعات (در گردش کار)"), 200
+        # ("wf_data_confirm", "تایید اطلاعات (در گردش کار)"), 300
+        # ("wf_data_convert", "کانورت اطلاعات (در گردش کار)"), 600
+        wf_permissions: List[WorkFlowState] = []
+        if self.has_perm('wf_data_entry'):
+            wf_sate = WorkFlowState.objects.get(id=100)
+            wf_permissions.append(wf_sate)
+        if self.has_perm('wf_data_check'):
+            wf_sate = WorkFlowState.objects.get(id=200)
+            wf_permissions.append(wf_sate)
+        if self.has_perm('wf_data_confirm'):
+            wf_sate = WorkFlowState.objects.get(id=300)
+            wf_permissions.append(wf_sate)
+        if self.has_perm('wf_data_convert'):
+            wf_sate = WorkFlowState.objects.get(id=600)
+            wf_permissions.append(wf_sate)
+
+        return wf_permissions
+
+
+class WorkFlowState(models.Model):
+    id = models.IntegerField(primary_key=True)
+    name = models.CharField(max_length=200)
+    description = models.TextField(blank=True, null=True)
+
+    class Meta:
+        verbose_name = "وضعیت گردش کار"
+        verbose_name_plural = "وضعیت گردش کار"
+
+        permissions = (
+            ("wf_data_entry", "ثبت اطلاعات (در گردش کار)"),  # 100
+            ("wf_data_check", "بررسی اطلاعات (در گردش کار)"),  # 200
+            ("wf_data_confirm", "تایید اطلاعات (در گردش کار)"),  # 300
+            ("wf_data_convert", "کانورت اطلاعات (در گردش کار)"),  # 600
+        )
 
 
 class ImageKind(models.Model):
@@ -211,6 +250,8 @@ class Profile(models.Model):
     presenter_percent_2 = models.IntegerField(blank=True, null=True)
     self_presenter_2 = models.BooleanField(blank=True, null=True)
     images = GenericRelation(Image, related_name='profile_images')
+    two_step_verification = models.BooleanField(blank=False, null=False, default=False,
+                                                verbose_name='ورود دو مرحله ای با استفاده از پیامک')
 
     class Meta:
         verbose_name = "پروفایل"
@@ -344,6 +385,7 @@ class Transaction(models.Model):
     DarMelyoon_Moaref = models.IntegerField(blank=True, null=True)
     images = GenericRelation(Image, related_name='transaction_images')
 
+    work_flow_states = models.ManyToManyField(to=WorkFlowState, through='TransactionWorkFlowState')
 
     # logging fields
     created = models.DateTimeField(auto_now_add=True, editable=False)
@@ -464,6 +506,15 @@ class Transaction(models.Model):
         return mohasebe_sod
 
 
+class TransactionWorkFlowState(models.Model):
+    transaction = models.ForeignKey(to=Transaction, on_delete=models.CASCADE, editable=False, blank=False, null=False)
+    work_flow_state = models.ForeignKey(to=WorkFlowState, on_delete=models.CASCADE, editable=False, blank=False,
+                                        null=False)
+    user = models.ForeignKey(to=User, on_delete=models.CASCADE, editable=False, blank=False, null=False)
+    date = models.DateTimeField(auto_created=True, editable=False, blank=False, null=False)
+    comment = models.TextField(blank=True, null=True)
+
+
 class ProfitKind(models.Model):
     name = models.CharField(max_length=20, null=True, blank=True)
 
@@ -536,6 +587,19 @@ class Post(models.Model):
 
     def __str__(self):
         return f'{self.title}'
+
+
+class OtpCode(models.Model):
+    phone = models.CharField(max_length=15, blank=False)
+    code = models.CharField(max_length=10, blank=False)
+    created = models.DateTimeField(auto_now_add=True)
+    is_verified = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ['phone']
+
+    def __str__(self):
+        return self.phone
 
 
 def mohasebe_sod_all(az_date: datetime, ta_date: datetime):
