@@ -38,44 +38,6 @@ class User(AbstractUser):
         ("can_add_user", "میتواند کاربر جدید ایجاد کند"),
     )
 
-    def get_user_wf_permissions(self):
-        # ("wf_data_entry", "ثبت اطلاعات (در گردش کار)"), 100
-        # ("wf_data_check", "بررسی اطلاعات (در گردش کار)"), 200
-        # ("wf_data_confirm", "تایید اطلاعات (در گردش کار)"), 300
-        # ("wf_data_convert", "کانورت اطلاعات (در گردش کار)"), 600
-        wf_permissions: List[WorkFlowState] = []
-        if self.has_perm('wf_data_entry'):
-            wf_sate = WorkFlowState.objects.get(id=100)
-            wf_permissions.append(wf_sate)
-        if self.has_perm('wf_data_check'):
-            wf_sate = WorkFlowState.objects.get(id=200)
-            wf_permissions.append(wf_sate)
-        if self.has_perm('wf_data_confirm'):
-            wf_sate = WorkFlowState.objects.get(id=300)
-            wf_permissions.append(wf_sate)
-        if self.has_perm('wf_data_convert'):
-            wf_sate = WorkFlowState.objects.get(id=600)
-            wf_permissions.append(wf_sate)
-
-        return wf_permissions
-
-
-class WorkFlowState(models.Model):
-    id = models.IntegerField(primary_key=True)
-    name = models.CharField(max_length=200)
-    description = models.TextField(blank=True, null=True)
-
-    class Meta:
-        verbose_name = "وضعیت گردش کار"
-        verbose_name_plural = "وضعیت گردش کار"
-
-        permissions = (
-            ("wf_data_entry", "ثبت اطلاعات (در گردش کار)"),  # 100
-            ("wf_data_check", "بررسی اطلاعات (در گردش کار)"),  # 200
-            ("wf_data_confirm", "تایید اطلاعات (در گردش کار)"),  # 300
-            ("wf_data_convert", "کانورت اطلاعات (در گردش کار)"),  # 600
-        )
-
 
 class ImageKind(models.Model):
     name = models.CharField(max_length=100, default='')
@@ -385,7 +347,6 @@ class Transaction(models.Model):
     DarMelyoon_Moaref = models.IntegerField(blank=True, null=True)
     images = GenericRelation(Image, related_name='transaction_images')
 
-    work_flow_states = models.ManyToManyField(to=WorkFlowState, through='TransactionWorkFlowState')
 
     # logging fields
     created = models.DateTimeField(auto_now_add=True, editable=False)
@@ -504,15 +465,6 @@ class Transaction(models.Model):
         mohasebe_sod.calculated_amount = round(self.amount * (sod / 10000000) * (mohasebe_sod.days / day_in_month), 0)
         mohasebe_sod.description = f'محاسبه سود معرفی {self.profile}'
         return mohasebe_sod
-
-
-class TransactionWorkFlowState(models.Model):
-    transaction = models.ForeignKey(to=Transaction, on_delete=models.CASCADE, editable=False, blank=False, null=False)
-    work_flow_state = models.ForeignKey(to=WorkFlowState, on_delete=models.CASCADE, editable=False, blank=False,
-                                        null=False)
-    user = models.ForeignKey(to=User, on_delete=models.CASCADE, editable=False, blank=False, null=False)
-    date = models.DateTimeField(auto_created=True, editable=False, blank=False, null=False)
-    comment = models.TextField(blank=True, null=True)
 
 
 class ProfitKind(models.Model):
