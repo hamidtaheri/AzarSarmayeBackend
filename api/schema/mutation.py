@@ -74,6 +74,54 @@ class LoginOTP(graphene.Mutation):
             return LoginOTP(user=user, token=token, ok=True, errors=errors)
 
 
+class ChangePassword(graphene.Mutation):
+    ok = graphene.Boolean(required=True)
+    errors = graphene.List(graphene.String, required=True)
+    token = graphene.String(required=False)
+
+    class Arguments:
+        # input_data = ChangePasswordInput(required=True, name="input")
+        password1 = String(required=True,description='کلمه عبور جدید')
+        password2 = String(required=True,description='تکرار کلمه عبور جدید')
+        old_password = String(required=True,description='کلمه عبور قدیمی')
+
+    def mutate(self, info, password1, password2, old_password):
+        errors = []
+        current_user: User = info.context.user
+
+        if password1 is None:
+            errors.append("رمز عبور جدید را وارد کنید")
+        if password2 is None:
+            errors.append("تکرار رمز عبور را وارد کنید")
+        if old_password is None:
+            errors.append("رمز عبور قبلی را وارد کنید")
+        if password1 != password2:
+            errors.append("رمز عبور و تکرار آن یکسان نیستند")
+        if password1 == old_password:
+            errors.append("رمز جدید نباید مشابه قبلی باشد")
+
+        # چک کردن درستی یوزر پسورد
+        user = authenticate(username=current_user.username, password=old_password)
+
+        # if user exists
+        if user is not None:
+            # اگر یوزر فعال بود
+            if user.is_active:
+                current_user.set_password(password1)  # تغییر پسورد
+                current_user.save()
+            else:
+                errors.append("کاربر غیر فعال شده است")
+        else:
+            errors.append("رمز عبور قبلی اشتباه است")
+
+        if errors:
+            return ChangePassword(ok=False, errors=errors)
+        else:
+            # ایجاد توکن
+            token = get_token(user)
+            return ChangePassword(token=token, ok=True, errors=errors)
+
+
 class CreateImageInput(graphene.InputObjectType):
     image = Upload(required=True)
     kind_id = graphene.Int()
@@ -365,6 +413,7 @@ class UpdateProfile(graphene.Mutation):
 class Mutation(graphene.ObjectType):
     login = Login.Field()
     login_otp = LoginOTP.Field()
+    change_password = ChangePassword.Field()
     create_transaction = CreateTransaction.Field()
     update_transaction = UpdateTransaction.Field()
     create_user = CreateUser.Field(description='ایجاد کاربر')
