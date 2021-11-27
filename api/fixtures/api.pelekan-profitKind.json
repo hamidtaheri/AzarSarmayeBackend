@@ -1,0 +1,176 @@
+[
+{
+    "model": "api.pelekan",
+    "pk": 1,
+    "fields": {
+        "az": 0,
+        "ta": 500000000,
+        "percent": 600000,
+        "kind": 1,
+        "description": ""
+    }
+},
+{
+    "model": "api.pelekan",
+    "pk": 2,
+    "fields": {
+        "az": 500000000,
+        "ta": 1000000000,
+        "percent": 650000,
+        "kind": 1,
+        "description": null
+    }
+},
+{
+    "model": "api.pelekan",
+    "pk": 3,
+    "fields": {
+        "az": 1000000000,
+        "ta": 3000000000,
+        "percent": 700000,
+        "kind": 1,
+        "description": null
+    }
+},
+{
+    "model": "api.pelekan",
+    "pk": 4,
+    "fields": {
+        "az": 3000000000,
+        "ta": 5000000000,
+        "percent": 750000,
+        "kind": 1,
+        "description": null
+    }
+},
+{
+    "model": "api.pelekan",
+    "pk": 5,
+    "fields": {
+        "az": 5000000000,
+        "ta": 999999999999999,
+        "percent": 800000,
+        "kind": 1,
+        "description": null
+    }
+},
+{
+    "model": "api.pelekan",
+    "pk": 6,
+    "fields": {
+        "az": 10,
+        "ta": 5000000000,
+        "percent": 50000,
+        "kind": 2,
+        "description": null
+    }
+},
+{
+    "model": "api.pelekan",
+    "pk": 7,
+    "fields": {
+        "az": 5000000000,
+        "ta": 30000000000,
+        "percent": 100000,
+        "kind": 2,
+        "description": null
+    }
+},
+{
+    "model": "api.pelekan",
+    "pk": 8,
+    "fields": {
+        "az": 30000000000,
+        "ta": 80000000000,
+        "percent": 150000,
+        "kind": 2,
+        "description": null
+    }
+},
+{
+    "model": "api.pelekan",
+    "pk": 9,
+    "fields": {
+        "az": 80000000000,
+        "ta": 200000000000,
+        "percent": 200000,
+        "kind": 2,
+        "description": null
+    }
+},
+{
+    "model": "api.pelekan",
+    "pk": 10,
+    "fields": {
+        "az": 200000000000,
+        "ta": 400000000000,
+        "percent": 250000,
+        "kind": 2,
+        "description": null
+    }
+},
+{
+    "model": "api.pelekan",
+    "pk": 11,
+    "fields": {
+        "az": 400000000000,
+        "ta": 999999999999999,
+        "percent": 300000,
+        "kind": 2,
+        "description": null
+    }
+},
+{
+    "model": "api.pelekankind",
+    "pk": 1,
+    "fields": {
+        "title": "طرح غدیر۱۴۰۰",
+        "start_date": null,
+        "description": "طرح غدیر۱۴۰۰"
+    }
+},
+{
+    "model": "api.pelekankind",
+    "pk": 2,
+    "fields": {
+        "title": "پلکان سود معرف ها",
+        "start_date": null,
+        "description": "پلکان سود معرف ها"
+    }
+},
+{
+    "model": "api.profitkind",
+    "pk": 1,
+    "fields": {
+        "name": "سپرده گذاری"
+    }
+},
+{
+    "model": "api.profitkind",
+    "pk": 2,
+    "fields": {
+        "name": "مرجوع"
+    }
+},
+{
+    "model": "api.profitkind",
+    "pk": 3,
+    "fields": {
+        "name": "واریز سود"
+    }
+},
+{
+    "model": "api.profitkind",
+    "pk": 4,
+    "fields": {
+        "name": "برداشت سود"
+    }
+},
+{
+    "model": "api.profitkind",
+    "pk": 5,
+    "fields": {
+        "name": "واریز سود معرفی"
+    }
+}
+]

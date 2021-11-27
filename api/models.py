@@ -1,7 +1,5 @@
 import datetime
 from random import randrange
-from typing import List
-
 import jdatetime
 import openpyxl
 from crum import get_current_user
@@ -13,7 +11,6 @@ from django.core.exceptions import PermissionDenied
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.db.models import QuerySet, Sum, Q
-from django.utils.timezone import now
 
 
 class MyException(Exception):
@@ -267,8 +264,7 @@ class Profile(models.Model):
         """
         transactions: QuerySet[Transaction] = Transaction.objects.filter(profile__presenter=self,
                                                                          effective_date__lte=ta_date,
-                                                                         effective_date__gte=
-                                                                         ta_date - datetime.timedelta(
+                                                                         effective_date__gte=ta_date - datetime.timedelta(
                                                                              day_for_calculate_presenter_profit)
                                                                          )
         seporde = transactions.filter(kind=1).aggregate(seporde=Sum('amount'))['seporde'] or 0
@@ -283,7 +279,6 @@ class Profile(models.Model):
     def mohasebe_sod_old(self, az_date: datetime.date, ta_date: datetime.date):
         """
         محاسبه سود بر اساس اینکه هر واریزی درصد سود خود را دارد
-        :param user:
         :param az_date:
         :param ta_date:
         :return:لیست محاسبات سود و مجموع انها را بر میگرداند
@@ -342,11 +337,10 @@ class Transaction(models.Model):
     NahveyePardakht = models.CharField(max_length=40, blank=True, null=True)
     description = models.TextField(blank=True, null=True)
     Tbl_Pardakht_List_id = models.IntegerField(blank=True, null=True)
-    percent = models.IntegerField()
+    percent = models.IntegerField()  # درصد سود
     # صرفا برای محاسبه مهر۱۴۰۰ برای اینکه محاسبه سود معرف به شیوه قدیمی محاسبه شود
     DarMelyoon_Moaref = models.IntegerField(blank=True, null=True)
     images = GenericRelation(Image, related_name='transaction_images')
-
 
     # logging fields
     created = models.DateTimeField(auto_now_add=True, editable=False)
@@ -456,7 +450,7 @@ class Transaction(models.Model):
         mohasebe_sod: ProfitCalculate = ProfitCalculate()
         mohasebe_sod.transaction = self
         mohasebe_sod.Profile = presenter
-        mohasebe_sod.kind_id = 2
+        mohasebe_sod.kind_id = 5
         mohasebe_sod.date_from = start_date
         mohasebe_sod.date_to = end_date
         mohasebe_sod.days = (end_date - start_date).days + 1  # فاصله روز شروع تا پایان +۱ شد
@@ -507,7 +501,8 @@ class ProfitCalculate(models.Model):
         ordering = ['created']
 
     def __str__(self):
-        return f'for:({self.transaction}) from:({self.date_from} = {m2sh(self.date_from)}) to:({self.date_to} = {m2sh(self.date_to)}) days: ({self.days}) ' \
+        return f'for:({self.transaction}) from:({self.date_from} = {m2sh(self.date_from)}) ' \
+               f'to:({self.date_to} = {m2sh(self.date_to)}) days: ({self.days}) ' \
                f'amount: ({self.amount})  percent: ({self.percent}) final: ({self.calculated_amount})'
 
 
@@ -539,6 +534,40 @@ class Post(models.Model):
 
     def __str__(self):
         return f'{self.title}'
+
+
+class WorkFlowStates(models.Model):
+    """
+    مراحل گردش کار
+    """
+    CONVERTED = 'converted'  # اطلاعات کانورت شده
+    STUFF_ADDED = 'staff added'  # وارد شده توسط کارمند
+    CUSTOMER_ADDED = 'customer added'  # وارد شده توسط مشتری
+    STUFF_CHECKED = 'stuff checked'  # بررسی شده توسط کارمند
+    STUFF_CONFIRMED = 'stuff confirmed'  # تایید شده توسط کارمند
+    CUSTOMER_CONFIRMED = 'stuff confirmed'  # تایید شده توسط مشتری
+    BOSS_CONFIRMED = 'boss confirmed'  # تایید شده توسط مدیر عامل
+
+    STATES = (
+        (CONVERTED, CONVERTED),
+        (STUFF_ADDED, STUFF_ADDED),
+        (CUSTOMER_ADDED, CUSTOMER_ADDED),
+        (STUFF_CHECKED, STUFF_CHECKED),
+        (STUFF_CONFIRMED, STUFF_CONFIRMED),
+        (CUSTOMER_CONFIRMED, CUSTOMER_CONFIRMED),
+        (BOSS_CONFIRMED, BOSS_CONFIRMED),
+        # (, ),
+    )
+
+    class Meta:
+        verbose_name = "مراحل گردش کار"
+        verbose_name_plural = "مراحل گردش کار"
+
+        permissions = (
+            ("WF_STUFF_ROLE", "نقش کارمند در گردش کار"),
+            ("WF_CUSTOMER_ROLE", "نقش مشتری در گردش کار"),
+            ("WF_BOSS_RULE", "نقش مدیر عامل در گردش کار"),
+        )
 
 
 class OtpCode(models.Model):
