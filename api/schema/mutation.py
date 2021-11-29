@@ -7,8 +7,7 @@ from graphene import String, ID
 from graphql_jwt.exceptions import PermissionDenied
 from graphql_jwt.shortcuts import get_token
 from graphene_file_upload.scalars import Upload
-
-import OTP
+from api.OTP import OTP
 from api.schema.query import *
 
 # from settings import HAVE_NOT_PERMISSION
@@ -56,7 +55,7 @@ class LoginOTP(graphene.Mutation):
                 phone = user.profile.mobile1
             except:
                 errors.append('اشکال در کاربر')
-            otp_creator = OTP.OTP()
+            otp_creator = OTP()
             if otp is None or otp == '':
                 if otp_creator.generate_otp_code(phone=phone):
                     errors.append(' رمز یکبار مصرف 5 رقمی از طریق پیامک برای شما ارسال شد.')

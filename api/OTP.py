@@ -1,6 +1,6 @@
 import api.models
 from api.models import OtpCode
-from SMS import SMS
+from api.SMS import SMS
 from random import randint
 from datetime import datetime
 from django.utils import timezone

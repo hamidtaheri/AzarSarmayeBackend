@@ -139,38 +139,57 @@
     }
 },
 {
+    "model": "api.transactionkind",
+    "pk": 1,
+    "fields": {
+        "title": "سپرده گذاری",
+        "description": ""
+    }
+},
+{
+    "model": "api.transactionkind",
+    "pk": 2,
+    "fields": {
+        "title": "مرجوع",
+        "description": ""
+    }
+},
+{
+    "model": "api.transactionkind",
+    "pk": 3,
+    "fields": {
+        "title": "واریز سود",
+        "description": ""
+    }
+},
+{
+    "model": "api.transactionkind",
+    "pk": 4,
+    "fields": {
+        "title": "برداشت سود",
+        "description": ""
+    }
+},
+{
+    "model": "api.transactionkind",
+    "pk": 5,
+    "fields": {
+        "title": "واریز سود معرفی",
+        "description": ""
+    }
+},
+{
     "model": "api.profitkind",
     "pk": 1,
     "fields": {
-        "name": "سپرده گذاری"
+        "name": "سود سپرده گذاری"
     }
 },
 {
     "model": "api.profitkind",
     "pk": 2,
     "fields": {
-        "name": "مرجوع"
-    }
-},
-{
-    "model": "api.profitkind",
-    "pk": 3,
-    "fields": {
-        "name": "واریز سود"
-    }
-},
-{
-    "model": "api.profitkind",
-    "pk": 4,
-    "fields": {
-        "name": "برداشت سود"
-    }
-},
-{
-    "model": "api.profitkind",
-    "pk": 5,
-    "fields": {
-        "name": "واریز سود معرفی"
+        "name": "سود معرفی"
     }
 }
 ]

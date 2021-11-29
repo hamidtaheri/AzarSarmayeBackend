@@ -450,7 +450,7 @@ class Transaction(models.Model):
         mohasebe_sod: ProfitCalculate = ProfitCalculate()
         mohasebe_sod.transaction = self
         mohasebe_sod.Profile = presenter
-        mohasebe_sod.kind_id = 5
+        mohasebe_sod.kind_id = 2
         mohasebe_sod.date_from = start_date
         mohasebe_sod.date_to = end_date
         mohasebe_sod.days = (end_date - start_date).days + 1  # فاصله روز شروع تا پایان +۱ شد
@@ -541,12 +541,12 @@ class WorkFlowStates(models.Model):
     مراحل گردش کار
     """
     CONVERTED = 'converted'  # اطلاعات کانورت شده
-    STUFF_ADDED = 'staff added'  # وارد شده توسط کارمند
-    CUSTOMER_ADDED = 'customer added'  # وارد شده توسط مشتری
-    STUFF_CHECKED = 'stuff checked'  # بررسی شده توسط کارمند
-    STUFF_CONFIRMED = 'stuff confirmed'  # تایید شده توسط کارمند
-    CUSTOMER_CONFIRMED = 'stuff confirmed'  # تایید شده توسط مشتری
-    BOSS_CONFIRMED = 'boss confirmed'  # تایید شده توسط مدیر عامل
+    STUFF_ADDED = 'staff_added'  # وارد شده توسط کارمند
+    CUSTOMER_ADDED = 'customer_added'  # وارد شده توسط مشتری
+    STUFF_CHECKED = 'stuff_checked'  # بررسی شده توسط کارمند
+    STUFF_CONFIRMED = 'stuff_confirmed'  # تایید شده توسط کارمند
+    CUSTOMER_CONFIRMED = 'stuff_confirmed'  # تایید شده توسط مشتری
+    BOSS_CONFIRMED = 'boss_confirmed'  # تایید شده توسط مدیر عامل
 
     STATES = (
         (CONVERTED, CONVERTED),

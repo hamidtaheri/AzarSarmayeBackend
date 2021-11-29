@@ -3,7 +3,7 @@
   "django": {
     "pythonVersion": "3.9"
   },
-  "app": "sadid",
+  "app": "sadidsarmaye",
   "disks": [
     {
       "name": "dumpdata",
