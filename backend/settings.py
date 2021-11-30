@@ -49,6 +49,8 @@ INSTALLED_APPS = [
     'corsheaders',
     'django_jalali',
     'import_export',
+    # 'simple_history',
+    'django_fsm',
 ]
 
 MIDDLEWARE = [
@@ -61,6 +63,8 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'crum.CurrentRequestUserMiddleware',  # برای دسترسی به کاربر جاری در مدل
+    # 'simple_history.middleware.HistoryRequestMiddleware',  # for django-simple-history user tracker
+
 ]
 CORS_ALLOW_ALL_ORIGINS = True  # If this is used then `CORS_ALLOWED_ORIGINS` will not have any effect
 

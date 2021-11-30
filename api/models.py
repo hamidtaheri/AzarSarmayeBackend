@@ -1,5 +1,6 @@
 import datetime
 from random import randrange
+
 import jdatetime
 import openpyxl
 from crum import get_current_user
@@ -11,6 +12,7 @@ from django.core.exceptions import PermissionDenied
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.db.models import QuerySet, Sum, Q
+from django_fsm import FSMField, transition
 
 
 class MyException(Exception):
@@ -322,6 +324,40 @@ class ProfileImageGallery(models.Model):
                                 blank=True)
 
 
+class WorkFlowStates(models.Model):
+    """
+    مراحل گردش کار
+    """
+    CONVERTED = 'converted'  # اطلاعات کانورت شده
+    STUFF_ADDED = 'staff_added'  # وارد شده توسط کارمند
+    CUSTOMER_ADDED = 'customer_added'  # وارد شده توسط مشتری
+    STUFF_CHECKED = 'stuff_checked'  # بررسی شده توسط کارمند
+    STUFF_CONFIRMED = 'stuff_confirmed'  # تایید شده توسط کارمند
+    CUSTOMER_CONFIRMED = 'stuff_confirmed'  # تایید شده توسط مشتری
+    BOSS_CONFIRMED = 'boss_confirmed'  # تایید شده توسط مدیر عامل
+
+    STATES = (
+        (CONVERTED, CONVERTED),
+        (STUFF_ADDED, STUFF_ADDED),
+        (CUSTOMER_ADDED, CUSTOMER_ADDED),
+        (STUFF_CHECKED, STUFF_CHECKED),
+        (STUFF_CONFIRMED, STUFF_CONFIRMED),
+        (CUSTOMER_CONFIRMED, CUSTOMER_CONFIRMED),
+        (BOSS_CONFIRMED, BOSS_CONFIRMED),
+        # (, ),
+    )
+
+    class Meta:
+        verbose_name = "مراحل گردش کار"
+        verbose_name_plural = "مراحل گردش کار"
+
+        permissions = (
+            ("WF_STUFF_ROLE", "نقش کارمند در گردش کار"),
+            ("WF_CUSTOMER_ROLE", "نقش مشتری در گردش کار"),
+            ("WF_BOSS_RULE", "نقش مدیر عامل در گردش کار"),
+        )
+
+
 class Transaction(models.Model):
     profile = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name='transactions')
     tarikh = models.CharField(max_length=10)
@@ -341,6 +377,7 @@ class Transaction(models.Model):
     # صرفا برای محاسبه مهر۱۴۰۰ برای اینکه محاسبه سود معرف به شیوه قدیمی محاسبه شود
     DarMelyoon_Moaref = models.IntegerField(blank=True, null=True)
     images = GenericRelation(Image, related_name='transaction_images')
+    state = FSMField(choices=WorkFlowStates.STATES, default="CONVERTED", protected=True)  # transaction workflow state
 
     # logging fields
     created = models.DateTimeField(auto_now_add=True, editable=False)
@@ -360,6 +397,34 @@ class Transaction(models.Model):
             ("add_transaction_for_all", "میتواند برای دیگران تراکنش ثبت کند"),
 
         )
+
+    @transition(field=state, source="*", target="CONVERTED")
+    def to_convert(self):
+        pass
+
+    @transition(field=state, source="CONVERTED", target="STUFF_CHECKED")
+    def to_stuff_check(self):
+        pass
+
+    @transition(field=state, source="STUFF_CHECKED, STUFF_ADDED", target="CUSTOMER_CONFIRMED")
+    def to_customer_confirm(self):
+        pass
+
+    @transition(field=state, source="CUSTOMER_CONFIRMED, CUSTOMER_ADDED", target="STUFF_CONFIRMED")
+    def to_stuff_confirm(self):
+        pass
+
+    @transition(field=state, source="STUFF_CONFIRMED", target="BOSS_CONFIRMED")
+    def to_boss_confirm(self):
+        pass
+
+    @transition(field=state, source="START", target="STUFF_ADDED")
+    def to_stuff_add(self):
+        pass
+
+    @transition(field=state, source="START", target="CUSTOMER_ADDED")
+    def to_customer_add(self):
+        pass
 
     def percent_calculator(self) -> float:
         """
@@ -534,40 +599,6 @@ class Post(models.Model):
 
     def __str__(self):
         return f'{self.title}'
-
-
-class WorkFlowStates(models.Model):
-    """
-    مراحل گردش کار
-    """
-    CONVERTED = 'converted'  # اطلاعات کانورت شده
-    STUFF_ADDED = 'staff_added'  # وارد شده توسط کارمند
-    CUSTOMER_ADDED = 'customer_added'  # وارد شده توسط مشتری
-    STUFF_CHECKED = 'stuff_checked'  # بررسی شده توسط کارمند
-    STUFF_CONFIRMED = 'stuff_confirmed'  # تایید شده توسط کارمند
-    CUSTOMER_CONFIRMED = 'stuff_confirmed'  # تایید شده توسط مشتری
-    BOSS_CONFIRMED = 'boss_confirmed'  # تایید شده توسط مدیر عامل
-
-    STATES = (
-        (CONVERTED, CONVERTED),
-        (STUFF_ADDED, STUFF_ADDED),
-        (CUSTOMER_ADDED, CUSTOMER_ADDED),
-        (STUFF_CHECKED, STUFF_CHECKED),
-        (STUFF_CONFIRMED, STUFF_CONFIRMED),
-        (CUSTOMER_CONFIRMED, CUSTOMER_CONFIRMED),
-        (BOSS_CONFIRMED, BOSS_CONFIRMED),
-        # (, ),
-    )
-
-    class Meta:
-        verbose_name = "مراحل گردش کار"
-        verbose_name_plural = "مراحل گردش کار"
-
-        permissions = (
-            ("WF_STUFF_ROLE", "نقش کارمند در گردش کار"),
-            ("WF_CUSTOMER_ROLE", "نقش مشتری در گردش کار"),
-            ("WF_BOSS_RULE", "نقش مدیر عامل در گردش کار"),
-        )
 
 
 class OtpCode(models.Model):

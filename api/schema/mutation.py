@@ -1,12 +1,12 @@
-import graphene
 import graphql_jwt
 from django.contrib.auth import authenticate
 from django.db import IntegrityError
 from django.utils import timezone
 from graphene import String, ID
+from graphene_file_upload.scalars import Upload
 from graphql_jwt.exceptions import PermissionDenied
 from graphql_jwt.shortcuts import get_token
-from graphene_file_upload.scalars import Upload
+
 from api.OTP import OTP
 from api.schema.query import *
 
@@ -80,9 +80,9 @@ class ChangePassword(graphene.Mutation):
 
     class Arguments:
         # input_data = ChangePasswordInput(required=True, name="input")
-        password1 = String(required=True,description='کلمه عبور جدید')
-        password2 = String(required=True,description='تکرار کلمه عبور جدید')
-        old_password = String(required=True,description='کلمه عبور قدیمی')
+        password1 = String(required=True, description='کلمه عبور جدید')
+        password2 = String(required=True, description='تکرار کلمه عبور جدید')
+        old_password = String(required=True, description='کلمه عبور قدیمی')
 
     def mutate(self, info, password1, password2, old_password):
         errors = []

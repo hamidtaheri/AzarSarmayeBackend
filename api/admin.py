@@ -8,6 +8,9 @@ from import_export.admin import ImportExportModelAdmin
 from . import models
 
 
+# from simple_history.admin import SimpleHistoryAdmin
+
+
 # ثبت مدل یوزر
 @admin.register(models.User)
 class UserAdmin(UserAdmin):
@@ -77,6 +80,11 @@ class TarakoneshAdmin(ImportExportModelAdmin):
     search_fields = ['shakhs__Lname', ]
 
 
+# @admin.register(models.Pelekan)
+# class TarakoneshAdmin(SimpleHistoryAdmin):
+#     list_display = ["id", "az", "ta","__str__"]
+#     # history_list_display = ["status"]
+
 @admin.register(models.TransactionKind)
 class TransactionKindAdmin(ImportExportModelAdmin):
     pass
@@ -87,6 +95,6 @@ admin.site.register(models.ImageKind)
 admin.site.register(models.ProfitKind)
 admin.site.register(models.PelekanKind)
 admin.site.register(models.ProfileImageGallery)
-admin.site.register(models.Pelekan)
+# admin.site.register(models.Pelekan,SimpleHistoryAdmin)
 # admin.site.register(models.TransactionKind)
 # admin.site.register(models.Transaction_old)

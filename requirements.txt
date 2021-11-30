@@ -23,3 +23,5 @@ django-environ==0.8.1
 django-import-export==2.6.1
 pillow==8.4.0
 kavenegar==1.1.2  # SMS https://kavenegar.com/
+django-fsm
+graphviz>=0.4
