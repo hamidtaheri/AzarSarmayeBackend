@@ -17,6 +17,8 @@ database URL : jdbc:sqlserver://localhost:1433
 
 ./manage.py shell -i ipython
 
+run api/script/script.py
+
 %load_ext autoreload
 %autoreload 2
 import api.models

@@ -1,13 +1,9 @@
 # import api
-import datetime
 
-from django.utils.datetime_safe import strftime
-from django.utils.timezone import now, localtime
 from django.contrib.auth.models import Group, Permission
-from jdatetime import jalali
+from django.utils.timezone import now
 
 from api.models import *
-import openpyxl
 
 # 1400/01/01        2021-03-21
 # 1400/01/31        2021-04-20
@@ -68,8 +64,7 @@ def show_all_permissions():
 
 show_all_groups()
 
-
-# show_all_permissions()
+show_all_permissions()
 
 
 def days_after_transaction_start():
@@ -79,3 +74,19 @@ def days_after_transaction_start():
         now_date = now().date()
         diff = (now_date - tr_date).days
         print(f'{tr.Tarikh_Moaser} {tr.effective_date} {diff}')
+
+
+from django.contrib.auth import get_user_model
+
+
+def reset_password(u, password):
+    try:
+        user = get_user_model().objects.get(username=u)
+    except:
+        return "User could not be found"
+    user.set_password(password)
+    user.save()
+    print("Password has been changed successfully")
+    return "Password has been changed successfully"
+
+# reset_password("superadmin", "abc*123")
