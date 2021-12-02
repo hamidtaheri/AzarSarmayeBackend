@@ -328,6 +328,7 @@ class WorkFlowStates(models.Model):
     """
     مراحل گردش کار
     """
+    START = 'start'  # start
     CONVERTED = 'converted'  # اطلاعات کانورت شده
     STUFF_ADDED = 'staff_added'  # وارد شده توسط کارمند
     CUSTOMER_ADDED = 'customer_added'  # وارد شده توسط مشتری
@@ -337,6 +338,7 @@ class WorkFlowStates(models.Model):
     BOSS_CONFIRMED = 'boss_confirmed'  # تایید شده توسط مدیر عامل
 
     STATES = (
+        (START, START),
         (CONVERTED, CONVERTED),
         (STUFF_ADDED, STUFF_ADDED),
         (CUSTOMER_ADDED, CUSTOMER_ADDED),
@@ -377,7 +379,7 @@ class Transaction(models.Model):
     # صرفا برای محاسبه مهر۱۴۰۰ برای اینکه محاسبه سود معرف به شیوه قدیمی محاسبه شود
     DarMelyoon_Moaref = models.IntegerField(blank=True, null=True)
     images = GenericRelation(Image, related_name='transaction_images')
-    state = FSMField(choices=WorkFlowStates.STATES, default="CONVERTED", protected=True)  # transaction workflow state
+    state = FSMField(choices=WorkFlowStates.STATES, protected=True)  # transaction workflow state
 
     # logging fields
     created = models.DateTimeField(auto_now_add=True, editable=False)
@@ -398,32 +400,45 @@ class Transaction(models.Model):
 
         )
 
-    @transition(field=state, source="*", target="CONVERTED")
+    @transition(field=state, source="START", target="CONVERTED")
     def to_convert(self):
-        pass
-
-    @transition(field=state, source="CONVERTED", target="STUFF_CHECKED")
-    def to_stuff_check(self):
-        pass
-
-    @transition(field=state, source="STUFF_CHECKED, STUFF_ADDED", target="CUSTOMER_CONFIRMED")
-    def to_customer_confirm(self):
-        pass
-
-    @transition(field=state, source="CUSTOMER_CONFIRMED, CUSTOMER_ADDED", target="STUFF_CONFIRMED")
-    def to_stuff_confirm(self):
-        pass
-
-    @transition(field=state, source="STUFF_CONFIRMED", target="BOSS_CONFIRMED")
-    def to_boss_confirm(self):
+        """
+        This method will contain the action that needs to be taken once the
+        state is changed. Such as notifying Users.
+        """
         pass
 
     @transition(field=state, source="START", target="STUFF_ADDED")
     def to_stuff_add(self):
         pass
 
+    @transition(field=state, source="CONVERTED", target="STUFF_ADDED")
+    def converted_to_stuff_add(self):
+        pass
+
     @transition(field=state, source="START", target="CUSTOMER_ADDED")
     def to_customer_add(self):
+        pass
+
+    # @transition(field=state, source="CONVERTED", target="STUFF_CHECKED")
+    # def to_stuff_check(self):
+    #     print('after stuff checked')
+    #     pass
+
+    @transition(field=state, source="STUFF_ADDED", target="CUSTOMER_CONFIRMED")
+    def to_customer_confirm(self):
+        pass
+
+    @transition(field=state, source="CUSTOMER_ADDED", target="STUFF_CONFIRMED")
+    def to_stuff_confirm(self):
+        pass
+
+    @transition(field=state, source="CUSTOMER_CONFIRMED", target="BOSS_CONFIRMED")
+    def customer_confirm_to_boss_confirm(self):
+        pass
+
+    @transition(field=state, source="STUFF_CONFIRMED", target="BOSS_CONFIRMED")
+    def to_boss_confirm(self):
         pass
 
     def percent_calculator(self) -> float:

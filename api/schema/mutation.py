@@ -2,6 +2,7 @@ import graphql_jwt
 from django.contrib.auth import authenticate
 from django.db import IntegrityError
 from django.utils import timezone
+from django.utils.timezone import now
 from graphene import String, ID
 from graphene_file_upload.scalars import Upload
 from graphql_jwt.exceptions import PermissionDenied
@@ -185,12 +186,12 @@ class CreateTransaction(graphene.Mutation):
         #                                 created_by=current_user, date_time=now(), percent=0)
         input_dict = input_data.__dict__
         tr = Transaction.objects.create(input_dict, date_time=now(), percent=0)
-        tr_wf_state: TransactionWorkFlowState = TransactionWorkFlowState()
-        tr_wf_state.transaction = tr
-        tr_wf_state.work_flow_state = WorkFlowState.objects.get(id=100)
-        tr_wf_state.date = now()
-        tr_wf_state.user = current_user
-        tr_wf_state.save()
+        if current_user.has_perm('WF_CUSTOMER_ROLE'):
+            tr.to_customer_add()
+        if current_user.has_perm('WF_STUFF_ROLE'):
+            tr.to_stuff_add()
+
+        tr.save()
         if input_data.images:
             for img in input_data.images:
                 img_in: CreateImageInput = img
