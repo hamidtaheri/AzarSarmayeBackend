@@ -1,5 +1,6 @@
 import graphql_jwt
 from django.contrib.auth import authenticate
+from django.core.exceptions import ObjectDoesNotExist
 from django.db import IntegrityError
 from django.utils import timezone
 from django.utils.timezone import now
@@ -338,6 +339,10 @@ class CreateProfile(graphene.Mutation):
 
         # new_user.save()
         # new_profile.user = new_user
+        if current_user.has_perm('WF_CUSTOMER_ROLE'):
+            new_profile.to_customer_add(by=current_user, description=input_data.description)
+        if current_user.has_perm('WF_STUFF_ROLE'):
+            new_profile.to_stuff_add(by=current_user, description=input_data.description)
 
         new_profile.save()
         return CreateProfilePayload(profile=new_profile)
@@ -406,8 +411,87 @@ class UpdateProfile(graphene.Mutation):
             setattr(new_profile, k, v)
 
         # new_user.save()
+        if new_profile.state == "START" and current_user.has_perm("WF_STUFF_ROLE"):
+            new_profile.to_stuff_add(by=current_user)
         new_profile.save()
         return UpdateProfilePayload(profile=new_profile)
+
+
+class ConfirmInput(graphene.InputObjectType):
+    id = graphene.Int(required=True)
+    confirmed = graphene.Boolean(required=True, description='درصورت تایید true در غیرآن false')
+    description = graphene.String(required=False, description='توضیحات')
+
+
+class ConfirmPayload(graphene.ObjectType):
+    ok = graphene.Boolean(required=True)
+    errors = graphene.List(graphene.String, required=True)
+
+
+class StuffConfirmProfile(graphene.Mutation):
+    """
+    تایید کابران ثبت نام کرده
+    """
+    # Output = ConfirmPayload
+    ok = graphene.Boolean(required=True)
+    errors = graphene.List(graphene.String, required=True)
+
+    class Arguments:
+        input_data = ConfirmInput(required=True, name="input")
+
+    # @permission_required('WF_STUFF_ROLE')
+    def mutate(self, info, input_data: ConfirmInput):
+        errors = []
+        current_user: User = info.context.user
+        try:
+            profile: Profile = Profile.objects.get(id=input_data.id)
+
+            if input_data.confirmed:
+                # کارمند صحت اطاعات را تایید کرد
+                profile.to_stuff_confirm(by=current_user, description=input_data.description)
+            else:
+                # کارمند صحت اطلاعات را تایید نکرد
+                profile.to_customer_add(by=current_user, description=input_data.description)
+            profile.save()
+        except ObjectDoesNotExist:
+            errors.append('وجود ندارد')
+        if errors:
+            return StuffConfirmProfile(ok=False, errors=errors)
+        else:
+            return StuffConfirmProfile(ok=True, errors=errors)
+
+
+class CustomerConfirmProfile(graphene.Mutation):
+    """
+    تایید اطلاعات مشتری که توسط کارمند ثبت شده اند توسط مشتری
+    """
+    Output = ConfirmPayload
+
+    class Arguments:
+        input_data = ConfirmInput(required=True, name="input")
+
+    def mutate(self, info, input_data: ConfirmInput):
+        errors = []
+        current_user: User = info.context.user
+
+        try:
+            profile: Profile = Profile.objects.get(input_data.id)
+            if not profile.user == current_user:
+                errors.append('عدم دسترسی')
+            if input_data.confirmed:
+                # مشتری صحت اطلاعات را تایید کرد
+                profile.to_customer_confirm(by=current_user, description=input_data.description)
+            else:
+                # مشتری صحت اطلاعات را تایید نکرد برگشت به کارمند
+                profile.to_stuff_add(by=current_user, description=input_data.description)
+            profile.save()
+
+        except ObjectDoesNotExist:
+            errors.append('وجود ندارد')
+        if errors:
+            return CustomerConfirmProfile(ok=False, errors=errors)
+        else:
+            return CustomerConfirmProfile(ok=True, errors=errors)
 
 
 class Mutation(graphene.ObjectType):
@@ -419,6 +503,7 @@ class Mutation(graphene.ObjectType):
     create_user = CreateUser.Field(description='ایجاد کاربر')
     create_profile = CreateProfile.Field()
     update_profile = UpdateProfile.Field()
+    stuff_confirm_profile = StuffConfirmProfile.Field(description='')
     # create_tarakonesh = CreateTarakonesh.Field()
     token_auth = graphql_jwt.ObtainJSONWebToken.Field()
     delete_token = graphql_jwt.Revoke.Field()
