@@ -1,10 +1,10 @@
 import graphene
-from django.db.models import Q
+from django.contrib.auth.models import Group, Permission
+from django_fsm_log.models import StateLog
 from graphene import relay, Enum, Int, Date
 from graphene_django import DjangoObjectType
 from graphene_django.filter import DjangoFilterConnectionField
-from graphql_jwt.decorators import login_required, staff_member_required, permission_required
-from django.contrib.auth.models import Group, Permission
+from graphql_jwt.decorators import login_required, staff_member_required
 
 from api.models import *
 
@@ -54,6 +54,11 @@ class MoarefiShodeHaType(DjangoObjectType):
         fields = ('first_name', 'last_name')
 
 
+class WorkFlowHistoryType(DjangoObjectType):
+    class Meta:
+        model = StateLog
+
+
 class ProfitCalculateType(DjangoObjectType):
     id = graphene.ID(source='pk', required=True)
     description = graphene.String()
@@ -78,6 +83,8 @@ class ProfileType(DjangoObjectType):
     moarefi_shode_ha = graphene.List(of_type=MoarefiShodeHaType)
     presenter = graphene.String(description='معرف')
     presenter_id = graphene.Int(description='معرف id')
+    state = graphene.String(description='مرحله در گردش کار')
+    state_history = graphene.List(of_type=WorkFlowHistoryType)
     images = graphene.List(of_type=ImageType)
     mohasebe_sod = graphene.List(ProfitCalculateType,
                                  description='نمایش جزیات محاسبه سود از تاریخ تا تاریخ برای کاربر جاری',
@@ -101,6 +108,7 @@ class ProfileType(DjangoObjectType):
             'last_name': ['exact', 'icontains', 'istartswith'],
             'code_meli': ['exact', 'icontains', 'istartswith'],
             'mobile1': ['exact', 'icontains', 'istartswith'],
+            'state': ['in']
         }
         interfaces = (relay.Node,)
 
@@ -125,6 +133,12 @@ class ProfileType(DjangoObjectType):
 
         images = Image.objects.filter(content_type=ct, object_id=self.id)
         return images
+
+    def resolve_state(self, info):
+        return self.state
+
+    def resolve_state_history(self, info):
+        return StateLog.objects.for_(self)
 
     def resolve_mohasebe_sod(self: Profile, info, az_date, ta_date):
         current_user: User = info.context.user
@@ -274,7 +288,8 @@ class Query(graphene.ObjectType):
         if not current_user.has_perm('view_all_profiles'):  # کاربر دسترسی ندارد
             #  فیلتر بر اساس کاربر جاری
             profiles = Profile.objects.filter(user=current_user)
-
+        if current_user.has_perm('WF_STUFF_ROLE'):
+            profiles = profiles.filter(state__in=["CONVERTED", "CUSTOMER_ADDED", "STUFF_ADDED"])  # "START",
         return profiles
 
     def resolve_transaction_kinds(root, info):

@@ -13,6 +13,7 @@ from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.db.models import QuerySet, Sum, Q
 from django_fsm import FSMField, transition
+from django_fsm_log.decorators import fsm_log_by, fsm_log_description
 
 
 class MyException(Exception):
@@ -188,6 +189,42 @@ class Transaction_old(models.Model):
             print(f'ProfitCalculate  availebale for user:{self.user}')
 
 
+class WorkFlowStates(models.Model):
+    """
+    مراحل گردش کار
+    """
+    START = 'start'  # start
+    CONVERTED = 'converted'  # اطلاعات کانورت شده
+    STUFF_ADDED = 'staff_added'  # وارد شده توسط کارمند
+    CUSTOMER_ADDED = 'customer_added'  # وارد شده توسط مشتری
+    STUFF_CHECKED = 'stuff_checked'  # بررسی شده توسط کارمند
+    STUFF_CONFIRMED = 'stuff_confirmed'  # تایید شده توسط کارمند
+    CUSTOMER_CONFIRMED = 'customer_confirmed'  # تایید شده توسط مشتری
+    BOSS_CONFIRMED = 'boss_confirmed'  # تایید شده توسط مدیر عامل
+
+    STATES = (
+        (START, START),
+        (CONVERTED, CONVERTED),
+        (STUFF_ADDED, STUFF_ADDED),
+        (CUSTOMER_ADDED, CUSTOMER_ADDED),
+        (STUFF_CHECKED, STUFF_CHECKED),
+        (STUFF_CONFIRMED, STUFF_CONFIRMED),
+        (CUSTOMER_CONFIRMED, CUSTOMER_CONFIRMED),
+        (BOSS_CONFIRMED, BOSS_CONFIRMED),
+        # (, ),
+    )
+
+    class Meta:
+        verbose_name = "مراحل گردش کار"
+        verbose_name_plural = "مراحل گردش کار"
+
+        permissions = (
+            ("WF_STUFF_ROLE", "نقش کارمند در گردش کار"),
+            ("WF_CUSTOMER_ROLE", "نقش مشتری در گردش کار"),
+            ("WF_BOSS_RULE", "نقش مدیر عامل در گردش کار"),
+        )
+
+
 class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile', blank=True, null=True, )
     first_name = models.CharField(max_length=100, blank=True, null=True)
@@ -213,6 +250,8 @@ class Profile(models.Model):
     images = GenericRelation(Image, related_name='profile_images')
     two_step_verification = models.BooleanField(blank=False, null=False, default=False,
                                                 verbose_name='ورود دو مرحله ای با استفاده از پیامک')
+    # profile workflow state
+    state = FSMField(choices=WorkFlowStates.STATES, protected=True, default="START", verbose_name='مرحله در گردش کار')
 
     class Meta:
         verbose_name = "پروفایل"
@@ -316,48 +355,77 @@ class Profile(models.Model):
     def __str__(self):
         return f'{self.first_name}   {self.last_name}'
 
+    @fsm_log_by
+    @fsm_log_description
+    @transition(field=state, source="START", target="CONVERTED")
+    def to_convert(self, by=None, description=None):
+        """
+        This method will contain the action that needs to be taken once the
+        state is changed. Such as notifying Users.
+        """
+        pass
+
+    @fsm_log_by
+    @fsm_log_description
+    @transition(field=state, source="START", target="STUFF_ADDED")
+    def to_stuff_add(self, by=None, description=None):
+        pass
+
+    @fsm_log_by
+    @fsm_log_description
+    @transition(field=state, source="CONVERTED", target="STUFF_ADDED")
+    def converted_to_stuff_add(self, by=None, description=None):
+        pass
+
+    @fsm_log_by
+    @fsm_log_description
+    @transition(field=state, source="START", target="CUSTOMER_ADDED")
+    def to_customer_add(self, by=None, description=None):
+        pass
+
+    # @transition(field=state, source="CONVERTED", target="STUFF_CHECKED")
+    # def to_stuff_check(self):
+    #     print('after stuff checked')
+    #     pass
+
+    @fsm_log_by
+    @fsm_log_description
+    @transition(field=state, source="STUFF_ADDED", target="CUSTOMER_CONFIRMED")
+    def to_customer_confirm(self, by=None, description=None):
+        pass
+
+    @fsm_log_by
+    @fsm_log_description
+    @transition(field=state, source="STUFF_ADDED", target="STUFF_ADDED")
+    def customer_reject(self, by=None, description=None):
+        pass
+
+    @fsm_log_by
+    @fsm_log_description
+    @transition(field=state, source="CUSTOMER_ADDED", target="STUFF_CONFIRMED")
+    def to_stuff_confirm(self, by=None, description=None):
+        pass
+
+    @fsm_log_by
+    @fsm_log_description
+    @transition(field=state, source="CUSTOMER_ADDED", target="CUSTOMER_ADDED")
+    def stuff_reject(self, by=None, description=None):
+        pass
+
+    # @transition(field=state, source="CUSTOMER_CONFIRMED", target="BOSS_CONFIRMED")
+    # def customer_confirm_to_boss_confirm(self):
+    #     pass
+
+    # @transition(field=state, source="STUFF_CONFIRMED", target="BOSS_CONFIRMED")
+    # def to_boss_confirm(self):
+    #     pass
+
 
 class ProfileImageGallery(models.Model):
     image_kind = models.ForeignKey(ImageKind, on_delete=models.SET_NULL, null=True, blank=True)
     image = GenericRelation(Image, related_name='profile_images')
     profile = models.ForeignKey(Profile, on_delete=models.SET_NULL, related_name='profile_images', null=True,
                                 blank=True)
-
-
-class WorkFlowStates(models.Model):
-    """
-    مراحل گردش کار
-    """
-    START = 'start'  # start
-    CONVERTED = 'converted'  # اطلاعات کانورت شده
-    STUFF_ADDED = 'staff_added'  # وارد شده توسط کارمند
-    CUSTOMER_ADDED = 'customer_added'  # وارد شده توسط مشتری
-    STUFF_CHECKED = 'stuff_checked'  # بررسی شده توسط کارمند
-    STUFF_CONFIRMED = 'stuff_confirmed'  # تایید شده توسط کارمند
-    CUSTOMER_CONFIRMED = 'stuff_confirmed'  # تایید شده توسط مشتری
-    BOSS_CONFIRMED = 'boss_confirmed'  # تایید شده توسط مدیر عامل
-
-    STATES = (
-        (START, START),
-        (CONVERTED, CONVERTED),
-        (STUFF_ADDED, STUFF_ADDED),
-        (CUSTOMER_ADDED, CUSTOMER_ADDED),
-        (STUFF_CHECKED, STUFF_CHECKED),
-        (STUFF_CONFIRMED, STUFF_CONFIRMED),
-        (CUSTOMER_CONFIRMED, CUSTOMER_CONFIRMED),
-        (BOSS_CONFIRMED, BOSS_CONFIRMED),
-        # (, ),
-    )
-
-    class Meta:
-        verbose_name = "مراحل گردش کار"
-        verbose_name_plural = "مراحل گردش کار"
-
-        permissions = (
-            ("WF_STUFF_ROLE", "نقش کارمند در گردش کار"),
-            ("WF_CUSTOMER_ROLE", "نقش مشتری در گردش کار"),
-            ("WF_BOSS_RULE", "نقش مدیر عامل در گردش کار"),
-        )
 
 
 class Transaction(models.Model):
@@ -429,8 +497,16 @@ class Transaction(models.Model):
     def to_customer_confirm(self):
         pass
 
+    @transition(field=state, source="STUFF_ADDED", target="STUFF_ADDED")
+    def customer_reject(self):
+        pass
+
     @transition(field=state, source="CUSTOMER_ADDED", target="STUFF_CONFIRMED")
     def to_stuff_confirm(self):
+        pass
+
+    @transition(field=state, source="CUSTOMER_ADDED", target="CUSTOMER_ADDED")
+    def stuff_reject(self):
         pass
 
     @transition(field=state, source="CUSTOMER_CONFIRMED", target="BOSS_CONFIRMED")

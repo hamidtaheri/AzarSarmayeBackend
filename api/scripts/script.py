@@ -62,9 +62,9 @@ def show_all_permissions():
         print(p.name)
 
 
-show_all_groups()
+# show_all_groups()
 
-show_all_permissions()
+# show_all_permissions()
 
 
 def days_after_transaction_start():
@@ -89,4 +89,13 @@ def reset_password(u, password):
     print("Password has been changed successfully")
     return "Password has been changed successfully"
 
+
 # reset_password("superadmin", "abc*123")
+
+# StateLog.objects.all()
+user: User = User.objects.get(id=1)
+prof2 = Profile.objects.get(id=2)
+print(prof2.state)
+prof2.to_customer_add(by=user, description='')
+print(prof2.state)
+prof2.save()

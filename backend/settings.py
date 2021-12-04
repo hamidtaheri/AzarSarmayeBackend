@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     'import_export',
     # 'simple_history',
     'django_fsm',
+    'django_fsm_log',
 ]
 
 MIDDLEWARE = [
