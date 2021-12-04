@@ -1,0 +1,21 @@
+[
+{
+    "model": "api.user",
+    "pk": 1,
+    "fields": {
+        "password": "pbkdf2_sha256$260000$DK0nMjq9Zaa9EGa7T3nFfm$BF6IVazjmmEAT8eaL8Gc5KsgCpoeC5C0AUtKRsqMLfE=",
+        "last_login": "2021-12-04T15:05:53.806Z",
+        "is_superuser": true,
+        "username": "superadmin",
+        "first_name": "",
+        "last_name": "",
+        "email": "s.r.alamalhoda@gmail.com",
+        "is_staff": true,
+        "is_active": true,
+        "date_joined": "2021-12-04T15:05:39.577Z",
+        "mobile": null,
+        "groups": [],
+        "user_permissions": []
+    }
+}
+]
