@@ -225,14 +225,28 @@ class WorkFlowStates(models.Model):
         )
 
 
+class Province(models.Model):
+    name = models.CharField(max_length=20, null=False, blank=False)
+
+    def __str__(self):
+        return f'{self.name}'
+
+
+class City(models.Model):
+    name = models.CharField(max_length=20, null=False, blank=False)
+    province = models.ForeignKey(to=Province, on_delete=models.CASCADE, related_name='cites')
+
+    def __str__(self):
+        return f'{self.name}'
+
+
 class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile', blank=True, null=True, )
     first_name = models.CharField(max_length=100, blank=True, null=True)
     last_name = models.CharField(max_length=100, blank=True, null=True)
-    code_meli = models.CharField(max_length=10, blank=True, null=True)
-    adress = models.CharField(max_length=500, blank=True, null=True)
+    national_code = models.CharField(max_length=10, blank=True, null=True)
     shomare_kart = models.CharField(max_length=100, blank=True, null=True)
-    shomare_hesab = models.CharField(max_length=100, blank=True, null=True)
+    account_number = models.CharField(max_length=100, blank=True, null=True)
     presenter = models.ForeignKey('self', verbose_name='معرف', blank=True, null=True,
                                   on_delete=models.CASCADE, related_name='moarefi_shode_ha')  # moarefi_shode_ha
     percent = models.IntegerField(blank=True, null=True)
@@ -241,9 +255,12 @@ class Profile(models.Model):
     description = models.CharField(max_length=100, blank=True, null=True)
     charge_to_presenter = models.BooleanField(blank=True, null=True)
     self_presenter = models.BooleanField(blank=True, null=True)
+    city = models.ForeignKey(City, on_delete=models.CASCADE, null=True, blank=True)
+    address = models.CharField(max_length=500, blank=True, null=True)
     tel = models.CharField(max_length=20, blank=True, null=True)
     mobile1 = models.CharField(max_length=11, blank=True, null=True)
     mobile2 = models.CharField(max_length=11, blank=True, null=True)
+    email = models.EmailField(blank=True, null=True)
     presenter_2 = models.IntegerField(blank=True, null=True)
     presenter_percent_2 = models.IntegerField(blank=True, null=True)
     self_presenter_2 = models.BooleanField(blank=True, null=True)
@@ -251,7 +268,7 @@ class Profile(models.Model):
     two_step_verification = models.BooleanField(blank=False, null=False, default=False,
                                                 verbose_name='ورود دو مرحله ای با استفاده از پیامک')
     # profile workflow state
-    state = FSMField(choices=WorkFlowStates.STATES, protected=True, default="START", verbose_name='مرحله در گردش کار')
+    state = FSMField(choices=WorkFlowStates.STATES, protected=False, default="START", verbose_name='مرحله در گردش کار')
 
     class Meta:
         verbose_name = "پروفایل"
@@ -447,7 +464,7 @@ class Transaction(models.Model):
     # صرفا برای محاسبه مهر۱۴۰۰ برای اینکه محاسبه سود معرف به شیوه قدیمی محاسبه شود
     DarMelyoon_Moaref = models.IntegerField(blank=True, null=True)
     images = GenericRelation(Image, related_name='transaction_images')
-    state = FSMField(choices=WorkFlowStates.STATES, protected=True)  # transaction workflow state
+    state = FSMField(choices=WorkFlowStates.STATES, protected=False)  # transaction workflow state
 
     # logging fields
     created = models.DateTimeField(auto_now_add=True, editable=False)
@@ -746,7 +763,7 @@ def mohasebe_sod_all(az_date: datetime, ta_date: datetime):
             profit_sheet.cell(row=counter, column=2, value=f"{p.id}")
             profit_sheet.cell(row=counter, column=3, value=f"{p.first_name} {p.last_name}")
             profit_sheet.cell(row=counter, column=4, value=sod_sum)
-            profit_sheet.cell(row=counter, column=5, value=p.shomare_hesab)
+            profit_sheet.cell(row=counter, column=5, value=p.accountـnumber)
 
             old_calculated_value = 0
             try:
@@ -830,7 +847,7 @@ def mohasebe_sod_moarefi_all(az_date: datetime, ta_date: datetime):
             profit_sheet.cell(row=counter, column=2, value=f"{p.id}")
             profit_sheet.cell(row=counter, column=3, value=f"{p.first_name} {p.last_name}")
             profit_sheet.cell(row=counter, column=4, value=f"{sod_sum}")
-            profit_sheet.cell(row=counter, column=5, value=p.shomare_hesab)
+            profit_sheet.cell(row=counter, column=5, value=p.accountـnumber)
             old_calculated_value = 0
             try:
                 old_calculated: Transaction = Transaction.objects.filter(profile=pr, kind_id=5,
