@@ -244,9 +244,13 @@ class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile', blank=True, null=True, )
     first_name = models.CharField(max_length=100, blank=True, null=True)
     last_name = models.CharField(max_length=100, blank=True, null=True)
+    father_name = models.CharField(max_length=100, blank=True, null=True)
     national_code = models.CharField(max_length=10, blank=True, null=True)
-    shomare_kart = models.CharField(max_length=100, blank=True, null=True)
-    account_number = models.CharField(max_length=100, blank=True, null=True)
+    birth_place = models.ForeignKey(City, verbose_name='محل تولد', on_delete=models.CASCADE, null=True, blank=True,
+                                    related_name='+')
+    birth_date = models.DateField(verbose_name='تاریخ تولد', null=True, blank=True)
+    account_number = models.CharField(verbose_name='شماره حساب', max_length=100, blank=True, null=True)  # شماره حساب
+    sheba = models.CharField(max_length=26, verbose_name='شماره شبا', null=True, blank=True)
     presenter = models.ForeignKey('self', verbose_name='معرف', blank=True, null=True,
                                   on_delete=models.CASCADE, related_name='moarefi_shode_ha')  # moarefi_shode_ha
     percent = models.IntegerField(blank=True, null=True)
@@ -255,8 +259,9 @@ class Profile(models.Model):
     description = models.CharField(max_length=100, blank=True, null=True)
     charge_to_presenter = models.BooleanField(blank=True, null=True)
     self_presenter = models.BooleanField(blank=True, null=True)
-    city = models.ForeignKey(City, on_delete=models.CASCADE, null=True, blank=True)
     address = models.CharField(max_length=500, blank=True, null=True)
+    city = models.ForeignKey(City, verbose_name='شهر', on_delete=models.CASCADE, null=True, blank=True)
+    postal_code = models.CharField(max_length=10, verbose_name='کد پستی', null=True, blank=True)
     tel = models.CharField(max_length=20, blank=True, null=True)
     mobile1 = models.CharField(max_length=11, blank=True, null=True)
     mobile2 = models.CharField(max_length=11, blank=True, null=True)
