@@ -379,7 +379,7 @@ class Profile(models.Model):
 
     @fsm_log_by
     @fsm_log_description
-    @transition(field=state, source="START", target="CONVERTED")
+    @transition(field=state, source="start", target="converted")
     def to_convert(self, by=None, description=None):
         """
         This method will contain the action that needs to be taken once the
@@ -389,19 +389,19 @@ class Profile(models.Model):
 
     @fsm_log_by
     @fsm_log_description
-    @transition(field=state, source="START", target="STUFF_ADDED")
+    @transition(field=state, source="start", target="stuff_added")
     def to_stuff_add(self, by=None, description=None):
         pass
 
     @fsm_log_by
     @fsm_log_description
-    @transition(field=state, source="CONVERTED", target="STUFF_ADDED")
+    @transition(field=state, source="converted", target="stuff_added")
     def converted_to_stuff_add(self, by=None, description=None):
         pass
 
     @fsm_log_by
     @fsm_log_description
-    @transition(field=state, source="START", target="CUSTOMER_ADDED")
+    @transition(field=state, source="start", target="customer_added")
     def to_customer_add(self, by=None, description=None):
         pass
 
@@ -412,25 +412,25 @@ class Profile(models.Model):
 
     @fsm_log_by
     @fsm_log_description
-    @transition(field=state, source="STUFF_ADDED", target="CUSTOMER_CONFIRMED")
+    @transition(field=state, source="stuff_added", target="customer_confirmed")
     def to_customer_confirm(self, by=None, description=None):
         pass
 
     @fsm_log_by
     @fsm_log_description
-    @transition(field=state, source="STUFF_ADDED", target="STUFF_ADDED")
+    @transition(field=state, source="stuff_added", target="stuff_added")
     def customer_reject(self, by=None, description=None):
         pass
 
     @fsm_log_by
     @fsm_log_description
-    @transition(field=state, source="CUSTOMER_ADDED", target="STUFF_CONFIRMED")
+    @transition(field=state, source="customer_added", target="stuff_confirmed")
     def to_stuff_confirm(self, by=None, description=None):
         pass
 
     @fsm_log_by
     @fsm_log_description
-    @transition(field=state, source="CUSTOMER_ADDED", target="CUSTOMER_ADDED")
+    @transition(field=state, source="customer_added", target="customer_added")
     def stuff_reject(self, by=None, description=None):
         pass
 
@@ -490,7 +490,7 @@ class Transaction(models.Model):
 
         )
 
-    @transition(field=state, source="START", target="CONVERTED")
+    @transition(field=state, source="start", target="converted")
     def to_convert(self):
         """
         This method will contain the action that needs to be taken once the
@@ -498,15 +498,15 @@ class Transaction(models.Model):
         """
         pass
 
-    @transition(field=state, source="START", target="STUFF_ADDED")
+    @transition(field=state, source="start", target="stuff_added")
     def to_stuff_add(self):
         pass
 
-    @transition(field=state, source="CONVERTED", target="STUFF_ADDED")
+    @transition(field=state, source="converted", target="stuff_added")
     def converted_to_stuff_add(self):
         pass
 
-    @transition(field=state, source="START", target="CUSTOMER_ADDED")
+    @transition(field=state, source="start", target="customer_added")
     def to_customer_add(self):
         pass
 
@@ -515,27 +515,27 @@ class Transaction(models.Model):
     #     print('after stuff checked')
     #     pass
 
-    @transition(field=state, source="STUFF_ADDED", target="CUSTOMER_CONFIRMED")
+    @transition(field=state, source="stuff_added", target="customer_confirmed")
     def to_customer_confirm(self):
         pass
 
-    @transition(field=state, source="STUFF_ADDED", target="STUFF_ADDED")
+    @transition(field=state, source="stuff_added", target="stuff_added")
     def customer_reject(self):
         pass
 
-    @transition(field=state, source="CUSTOMER_ADDED", target="STUFF_CONFIRMED")
+    @transition(field=state, source="customer_added", target="stuff_confirmed")
     def to_stuff_confirm(self):
         pass
 
-    @transition(field=state, source="CUSTOMER_ADDED", target="CUSTOMER_ADDED")
+    @transition(field=state, source="customer_added", target="customer_added")
     def stuff_reject(self):
         pass
 
-    @transition(field=state, source="CUSTOMER_CONFIRMED", target="BOSS_CONFIRMED")
+    @transition(field=state, source="customer_confirmed", target="boss_confirmed")
     def customer_confirm_to_boss_confirm(self):
         pass
 
-    @transition(field=state, source="STUFF_CONFIRMED", target="BOSS_CONFIRMED")
+    @transition(field=state, source="stuff_confirmed", target="boss_confirmed")
     def to_boss_confirm(self):
         pass
 
@@ -768,7 +768,7 @@ def mohasebe_sod_all(az_date: datetime, ta_date: datetime):
             profit_sheet.cell(row=counter, column=2, value=f"{p.id}")
             profit_sheet.cell(row=counter, column=3, value=f"{p.first_name} {p.last_name}")
             profit_sheet.cell(row=counter, column=4, value=sod_sum)
-            profit_sheet.cell(row=counter, column=5, value=p.accountـnumber)
+            profit_sheet.cell(row=counter, column=5, value=p.account_number)
 
             old_calculated_value = 0
             try:
@@ -897,15 +897,15 @@ def mohasebe_sod_moarefi_all(az_date: datetime, ta_date: datetime):
     print(f'finish')
 
 
-def mohasebe_sod_1_nafar(a: int, az_date: datetime, ta_date: datetime):
-    m = Profile.objects.get(id=a)
-    sod_list, sod_sum = m.mohasebe_sod_old(az_date=az_date, ta_date=ta_date)
+def mohasebe_sod_1_nafar(profile_id: int, az_date: datetime, ta_date: datetime):
+    p: Profile = Profile.objects.get(id=profile_id)
+    sod_list, sod_sum = p.mohasebe_sod_old(az_date=az_date, ta_date=ta_date)
     return sod_list, sod_sum
 
 
-def mohasebe_sod_moarefi_1_nafar(a: int, az_date: datetime, ta_date: datetime):
-    m = Profile.objects.get(id=a)
-    sod_list, sod_sum = m.mohasebe_sod_moarefi(az_date=az_date, ta_date=ta_date)
+def mohasebe_sod_moarefi_1_nafar(profile_id: int, az_date: datetime, ta_date: datetime):
+    p: Profile = Profile.objects.get(id=profile_id)
+    sod_list, sod_sum = p.mohasebe_sod_moarefi(az_date=az_date, ta_date=ta_date)
     return sod_list, sod_sum
 
 
