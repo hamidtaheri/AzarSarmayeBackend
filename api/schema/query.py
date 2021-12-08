@@ -1,7 +1,7 @@
 import graphene
 from django.contrib.auth.models import Group, Permission
 from django_fsm_log.models import StateLog
-from graphene import relay, Enum, Int, Date
+from graphene import relay, Enum, Int, Date, ObjectType
 from graphene_django import DjangoObjectType
 from graphene_django.filter import DjangoFilterConnectionField
 from graphql_jwt.decorators import login_required, staff_member_required
@@ -66,7 +66,7 @@ class ProfitCalculateType(DjangoObjectType):
 
     class Meta:
         model = ProfitCalculate
-        fields = ('amount', 'date_from', 'date_to', 'percent', 'calculated_amount', 'days',)
+        fields = ('amount', 'date_from', 'date_to', 'percent', 'calculated_amount', 'days', 'profile')
 
     def resolve_description(self, info):
         return self
@@ -172,6 +172,17 @@ class ProfileType(DjangoObjectType):
         return queryset
 
 
+class MohasebeSodForAllSummaryType(ObjectType):
+    profile = graphene.Field(ProfileType)
+    amount = graphene.Float()
+
+    def resolve_amount(self, info):
+        return self[1]
+
+    def resolve_profile(self, info):
+        return self[0]
+
+
 class TransactionType(DjangoObjectType):
     id = graphene.ID(source='pk', required=True)
     amount = graphene.Float(required=True, description='مبلغ')
@@ -270,6 +281,12 @@ class Query(graphene.ObjectType):
                                  az_date=Date(required=True, description='از تاریخ'),
                                  ta_date=Date(required=True, description='تا تاریخ'),
                                  )
+    mohasebe_sod_for_all_summary = graphene.List(MohasebeSodForAllSummaryType,
+                                                 description='نمایش سود از تاریخ تا تاریخ برای  همه کاربران',
+                                                 az_date=Date(required=True, description='از تاریخ'),
+                                                 ta_date=Date(required=True, description='تا تاریخ'),
+                                                 offset=Int(), first=Int()
+                                                 )
     permissions = graphene.List(PermissionType, description='')
     groups = graphene.List(GroupType, description='گروه های دسترسی')
     provinces = graphene.List(ProvinceType)
@@ -333,6 +350,18 @@ class Query(graphene.ObjectType):
 
         r, _ = p.mohasebe_sod_old(az_date=az_date, ta_date=ta_date)
         return r
+
+    @login_required
+    def resolve_mohasebe_sod_for_all_summary(root, info, az_date, ta_date, offset, first):
+        current_user: User = info.context.user
+        sod_list: list[Profile, int] = []
+        if current_user.is_superuser:
+            for pr in Profile.objects.all():
+                p: Profile = pr
+                _, sod_sum = mohasebe_sod_1_nafar(p.id, az_date, ta_date)
+                sod_list.append((p, sod_sum))
+
+            return sod_list[offset: first]
 
     @staff_member_required
     def resolve_permissions(self, info, **kwargs):
