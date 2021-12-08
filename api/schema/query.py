@@ -100,13 +100,13 @@ class ProfileType(DjangoObjectType):
     class Meta:
         model = Profile
         fields = (
-            'id', 'user', 'first_name', 'last_name', 'code_meli', 'adress', 'shomare_kart', 'shomare_hesab',
-            'description', 'tel', 'mobile1', 'transactions', 'images')
+            'id', 'user', 'first_name', 'last_name', 'national_code', 'address', 'shomare_kart', 'account_number',
+            'description', 'tel', 'mobile1', 'transactions', 'images', 'email')
         filter_fields = {
             'id': ['exact'],
             'presenter__id': ['exact'],
             'last_name': ['exact', 'icontains', 'istartswith'],
-            'code_meli': ['exact', 'icontains', 'istartswith'],
+            'national_code': ['exact', 'icontains', 'istartswith'],
             'mobile1': ['exact', 'icontains', 'istartswith'],
             'state': ['in']
         }
@@ -221,12 +221,33 @@ class GroupType(DjangoObjectType):
     class Meta:
         model = Group
         fields = ['name', 'permissions', 'users']
-        filter_fields = {'id': ['exact'], 'name': ['icontains']}
+        filter_fields = {'id': ['exact'], 'name': ['icontains', 'istartswith']}
 
     def resolve_users(self: Group, info):
         users = self.user_set.all()
         return users
 
+
+class CityType(DjangoObjectType):
+    id = graphene.ID(source='pk', required=True)
+
+    class Meta:
+        model = City
+        fields = ['name', 'id']
+        filter_fields = {'province__id': ['exact'], 'name': ['icontains', 'istartswith']}
+        interfaces = (relay.Node,)
+
+
+class ProvinceType(DjangoObjectType):
+    class Meta:
+        model = Province
+        fields = ['name', 'id', 'cites', ]
+
+
+# class WorkflowSatesType:
+#     class Meta:
+#         model = WorkFlowStates
+#
 
 class Query(graphene.ObjectType):
     me = graphene.Field(UserType)
@@ -234,6 +255,7 @@ class Query(graphene.ObjectType):
     posts = graphene.List(PostType)
     # users = graphene.List(UserType)
     # users = DjangoFilterConnectionField(UserType)
+    # workflow_states = graphene.List(WorkflowSatesType)
     users = graphene.List(UserType)
     last_logged_in_users = graphene.List(UserType, count=Int())
     profiles = DjangoFilterConnectionField(ProfileType)
@@ -247,6 +269,8 @@ class Query(graphene.ObjectType):
                                  )
     permissions = graphene.List(PermissionType, description='')
     groups = graphene.List(GroupType, description='گروه های دسترسی')
+    provinces = graphene.List(ProvinceType)
+    cites = DjangoFilterConnectionField(CityType)
 
     @login_required
     def resolve_me(root, info, **kwargs):
@@ -316,3 +340,9 @@ class Query(graphene.ObjectType):
     def resolve_groups(self, info, **kwargs):
         groups = Group.objects.all()
         return groups
+
+    def resolve_provinces(root, info):
+        return Province.objects.all()
+
+    def resolve_cites(root, info, **kwargs):
+        return City.objects.all()

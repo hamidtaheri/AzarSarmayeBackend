@@ -74,10 +74,9 @@ class AshkasAdmin(ImportExportModelAdmin):
 
 
 @admin.register(models.Transaction)
-class TarakoneshAdmin(ImportExportModelAdmin):
-    list_display = ['__str__', 'profile', 'tarikh', 'kind', 'amount', ]
+class TarakoneshAdmin(admin.ModelAdmin):
+    list_display = ['profile', 'kind', 'amount', ]
     list_filter = ['kind', 'date_time', ]
-    search_fields = ['shakhs__Lname', ]
 
 
 # @admin.register(models.Pelekan)

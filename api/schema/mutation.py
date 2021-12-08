@@ -6,6 +6,7 @@ from django.utils import timezone
 from django.utils.timezone import now
 from graphene import String, ID
 from graphene_file_upload.scalars import Upload
+from graphql_jwt.decorators import permission_required
 from graphql_jwt.exceptions import PermissionDenied
 from graphql_jwt.shortcuts import get_token
 
@@ -277,16 +278,18 @@ class CreateProfileInput(graphene.InputObjectType):
     user = UserInput(required=True).Field()
     first_name = String()
     last_name = String()
-    code_meli = String()
-    adress = String()
+    national_code = String()
+    address = String()
     shomare_kart = String()
-    shomare_hesab = String()
+    account_number = String()
     presenter_id = Int(required=False, description='id معرف')
     description = String()
     tel = String()
     mobile1 = String()
     mobile2 = String()
+    email = String()
     images = graphene.List(CreateImageInput)
+    city_id = Int(required=False, )
     # file = Upload(required=True)
 
 
@@ -321,13 +324,13 @@ class CreateProfile(graphene.Mutation):
                 except IntegrityError as e:
                     raise MyException('نام کاربری تکراری است')
                 continue
-            if k == 'presenter_id':
+            elif k == 'presenter_id':
                 try:
                     presenter: Profile = Profile.objects.get(id=input_data.presenter_id)
                     # new_profile.presenter = presenter
                 except Profile.DoesNotExist:
                     raise MyException('معرف پیدا نشد')
-            if k == 'images':
+            elif k == 'images':
                 for img in input_data.images:
                     new_img = Image.objects.create(object_id=new_profile_id, content_type_id=4)
                     for ki, vi in img.items():
@@ -335,13 +338,18 @@ class CreateProfile(graphene.Mutation):
                     new_img.save()
 
                 continue
+            # elif k == 'city':
+            #     setattr(new_profile, 'city_id', v)
+            #     continue
+
             setattr(new_profile, k, v)
 
         # new_user.save()
         # new_profile.user = new_user
+        new_profile.save()
         if current_user.has_perm('WF_CUSTOMER_ROLE'):
             new_profile.to_customer_add(by=current_user, description=input_data.description)
-        if current_user.has_perm('WF_STUFF_ROLE'):
+        elif current_user.has_perm('WF_STUFF_ROLE'):
             new_profile.to_stuff_add(by=current_user, description=input_data.description)
 
         new_profile.save()
