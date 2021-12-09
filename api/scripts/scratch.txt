@@ -7,13 +7,18 @@ database URL : jdbc:sqlserver://localhost:1433
 ./manage.py dumpdata --indent 4 --natural-foreign --natural-primary --exclude auth.permission --exclude contenttypes --exclude admin -o dump-1400-06-23.json
 ./manage.py dumpdata --indent 4 --natural-foreign --natural-primary -o dump-1400-08-1.json
 ./manage.py dumpdata --indent 4 api.pelekan api.pelekankind api.transactionkind api.profitkind --output api.pelekan-transactionkind.json
+./manage.py dumpdata --indent 4 --natural-foreign --natural-primary api.province api.city --output api.province.city.json
+./manage.py loaddata api.pelekan-transactionkind.json api.user.json
 
+./manage.py dumpdata --indent 4 --natural-foreign --natural-primary --output api_full_1400_09_17.json
+python -Xutf8 manage.py dumpdata --indent 4 --natural-foreign --natural-primary --output api_full_1400_09_17.json # در ویندوز
 
 # نمایش پورت های  ۸۰ در حال استفاده:
 # sudo lsof -t -i tcp:8000
 # بستن آنها
 # sudo lsof -t -i tcp:8000 | xargs kill -9
 
+# pip uninstall django_fsm_log
 
 ./manage.py shell -i ipython
 

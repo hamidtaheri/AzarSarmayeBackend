@@ -93,9 +93,9 @@ def reset_password(u, password):
 # reset_password("superadmin", "abc*123")
 
 # StateLog.objects.all()
-user: User = User.objects.get(id=1)
-prof2 = Profile.objects.get(id=2)
-print(prof2.state)
-prof2.to_customer_add(by=user, description='')
-print(prof2.state)
-prof2.save()
+user1: User = User.objects.get(id=1)
+tr: Transaction = Transaction.objects.get(id=11466)
+print(tr)
+tr.state = 'START'
+tr.created_by = user1
+tr.save()
