@@ -6,6 +6,7 @@ from graphene_django import DjangoObjectType
 from graphene_django.filter import DjangoFilterConnectionField
 from graphql_jwt.decorators import login_required, staff_member_required
 
+from api import views
 from api.models import *
 
 
@@ -287,6 +288,12 @@ class Query(graphene.ObjectType):
                                                  ta_date=Date(required=True, description='تا تاریخ'),
                                                  offset=Int(), first=Int()
                                                  )
+    mohasebe_sod_all_export_excel = graphene.String(
+        description='خروجی اکسل سود از تاریخ تا تاریخ برای  همه کاربران',
+        az_date=Date(required=True, description='از تاریخ'),
+        ta_date=Date(required=True, description='تا تاریخ'),
+        offset=Int(), first=Int()
+    )
     permissions = graphene.List(PermissionType, description='')
     groups = graphene.List(GroupType, description='گروه های دسترسی')
     provinces = graphene.List(ProvinceType)
@@ -362,6 +369,10 @@ class Query(graphene.ObjectType):
                 sod_list.append((p, sod_sum))
 
             return sod_list[offset: first]
+
+    @login_required
+    def resolve_mohasebe_sod_all_export_excel(root, info, az_date, ta_date):
+        return views.mohasebe_sod_all_export_excel(az_date=az_date, ta_date=ta_date)
 
     @staff_member_required
     def resolve_permissions(self, info, **kwargs):

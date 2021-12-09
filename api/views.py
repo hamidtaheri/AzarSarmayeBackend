@@ -9,6 +9,7 @@ from graphene_django.views import GraphQLView
 
 from api.models import Profile, mohasebe_sod_1_nafar, Transaction, ProfitCalculate, Pelekan, m2sh, \
     mohasebe_sod_moarefi_1_nafar
+from backend import settings
 
 
 class PrivateGraphQLView(LoginRequiredMixin, GraphQLView):
@@ -20,6 +21,57 @@ def home(request):
 
 
 def mohasebe_sod_all_export_excel(az_date: datetime, ta_date: datetime):
+    profit_excel = openpyxl.Workbook()
+    profit_sheet = profit_excel.active
+    profit_sheet.title = "sadid Sheet1"
+
+    profit_sheet.cell(row=1, column=1, value="row num")
+    profit_sheet.cell(row=1, column=2, value="id")
+    profit_sheet.cell(row=1, column=3, value="name")
+    profit_sheet.cell(row=1, column=4, value="amount")
+    profit_sheet.cell(row=1, column=5, value="hesab")
+    profit_sheet.cell(row=1, column=6, value="محاسبه شده توسط نرم افزار قدیمی")
+    profit_sheet.cell(row=1, column=7, value="اختلاف")
+
+    counter = detail_counter = 1
+    for pr in Profile.objects.all():
+        p: Profile = pr
+        try:
+            sod_list, sod_sum = mohasebe_sod_1_nafar(p.id, az_date, ta_date)
+
+            counter += 1
+            profit_sheet.cell(row=counter, column=1, value=counter - 1)
+            profit_sheet.cell(row=counter, column=2, value=f"{p.id}")
+            profit_sheet.cell(row=counter, column=3, value=f"{p.first_name} {p.last_name}")
+            profit_sheet.cell(row=counter, column=4, value=sod_sum)
+            profit_sheet.cell(row=counter, column=5, value=p.account_number)
+
+            old_calculated_value = 0
+            try:
+                old_calculated: Transaction = Transaction.objects.filter(profile=pr, kind_id=3, effective_date=ta_date)[
+                    0]
+                old_calculated_value = old_calculated.amount
+            except IndexError:
+                pass
+
+            profit_sheet.cell(row=counter, column=6, value=old_calculated_value)
+            profit_sheet.cell(row=counter, column=7, value=sod_sum - old_calculated_value)
+
+
+
+        except Pelekan.MultipleObjectsReturned:
+            print(f'ERROR for {p}({p.id})  MultipleObjectsReturned')
+            sod_sum = f'ERROR for {p}({p.id})  MultipleObjectsReturned'
+        except Pelekan.DoesNotExist:
+            print(f'ERROR for {p}({p.id})  DoesNotExist')
+            sod_sum = f'ERROR for {p}({p.id})  DoesNotExist'
+    filename = f"profit-{jdatetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.xlsx"
+    profit_excel.save(filename=f"{settings.MEDIA_ROOT}\\{filename}")
+    print(f'finish')
+    return f"{settings.MEDIA_URL}{filename}"
+
+
+def mohasebe_sod_detail_all_export_excel(az_date: datetime, ta_date: datetime):
     profit_excel = openpyxl.Workbook()
     profit_sheet = profit_excel.active
     profit_sheet.title = "sadid Sheet1"
