@@ -1,11 +1,12 @@
 import graphene
 from django.contrib.auth.models import Group, Permission
 from django_fsm_log.models import StateLog
-from graphene import relay, Enum, Int, Date
+from graphene import relay, Enum, Int, Date, ObjectType
 from graphene_django import DjangoObjectType
 from graphene_django.filter import DjangoFilterConnectionField
 from graphql_jwt.decorators import login_required, staff_member_required
 
+from api import views
 from api.models import *
 
 
@@ -39,7 +40,8 @@ class UserType(DjangoObjectType):
     class Meta:
         model = User
         fields = (
-            'id', 'first_name', 'last_name', 'username', 'email', 'profile', 'last_login', 'user_permissions',)
+            'id', 'first_name', 'last_name',
+            'username', 'profile', 'last_login', 'user_permissions',)
         # groups
 
 
@@ -65,7 +67,7 @@ class ProfitCalculateType(DjangoObjectType):
 
     class Meta:
         model = ProfitCalculate
-        fields = ('amount', 'date_from', 'date_to', 'percent', 'calculated_amount', 'days',)
+        fields = ('amount', 'date_from', 'date_to', 'percent', 'calculated_amount', 'days', 'profile')
 
     def resolve_description(self, info):
         return self
@@ -100,8 +102,10 @@ class ProfileType(DjangoObjectType):
     class Meta:
         model = Profile
         fields = (
-            'id', 'user', 'first_name', 'last_name', 'national_code', 'address', 'shomare_kart', 'account_number',
-            'description', 'tel', 'mobile1', 'transactions', 'images', 'email')
+            'id', 'user', 'first_name', 'last_name', 'birth_place', 'national_code',
+            'address', 'postal_code', 'tel', 'mobile1', 'mobile2', 'email',
+            'description', 'transactions', 'images',
+            'account_number')
         filter_fields = {
             'id': ['exact'],
             'presenter__id': ['exact'],
@@ -169,6 +173,17 @@ class ProfileType(DjangoObjectType):
         return queryset
 
 
+class MohasebeSodForAllSummaryType(ObjectType):
+    profile = graphene.Field(ProfileType)
+    amount = graphene.Float()
+
+    def resolve_amount(self, info):
+        return self[1]
+
+    def resolve_profile(self, info):
+        return self[0]
+
+
 class TransactionType(DjangoObjectType):
     id = graphene.ID(source='pk', required=True)
     amount = graphene.Float(required=True, description='مبلغ')
@@ -233,7 +248,7 @@ class CityType(DjangoObjectType):
 
     class Meta:
         model = City
-        fields = ['name', 'id']
+        fields = ['name', 'id', ]
         filter_fields = {'province__id': ['exact'], 'name': ['icontains', 'istartswith']}
         interfaces = (relay.Node,)
 
@@ -263,10 +278,22 @@ class Query(graphene.ObjectType):
     transaction_kinds = graphene.List(TransactionKindType)
     mohasebe_sod = graphene.List(ProfitCalculateType,
                                  description='نمایش سود از تاریخ تا تاریخ برای کاربر',
-                                 user_id=Int(required=True, description='کابر'),
+                                 profile_id=Int(required=True, description='کابر'),
                                  az_date=Date(required=True, description='از تاریخ'),
                                  ta_date=Date(required=True, description='تا تاریخ'),
                                  )
+    mohasebe_sod_for_all_summary = graphene.List(MohasebeSodForAllSummaryType,
+                                                 description='نمایش سود از تاریخ تا تاریخ برای  همه کاربران',
+                                                 az_date=Date(required=True, description='از تاریخ'),
+                                                 ta_date=Date(required=True, description='تا تاریخ'),
+                                                 offset=Int(), first=Int()
+                                                 )
+    mohasebe_sod_all_export_excel = graphene.String(
+        description='خروجی اکسل سود از تاریخ تا تاریخ برای  همه کاربران',
+        az_date=Date(required=True, description='از تاریخ'),
+        ta_date=Date(required=True, description='تا تاریخ'),
+        offset=Int(), first=Int()
+    )
     permissions = graphene.List(PermissionType, description='')
     groups = graphene.List(GroupType, description='گروه های دسترسی')
     provinces = graphene.List(ProvinceType)
@@ -320,16 +347,32 @@ class Query(graphene.ObjectType):
         return TransactionKind.objects.all()
 
     @login_required
-    def resolve_mohasebe_sod(root, info, user_id, az_date, ta_date):
+    def resolve_mohasebe_sod(root, info, profile_id, az_date, ta_date):
         current_user: User = info.context.user
-        user: Profile = Profile()
+        p: Profile = Profile()
         if current_user.is_superuser:
-            user = Profile.objects.get(id=user_id)
+            p = Profile.objects.get(id=profile_id)
         else:
-            user = Profile.objects.get(user=current_user)
+            p = Profile.objects.get(user=current_user)
 
-        r, _ = user.mohasebe_sod_old(az_date=az_date, ta_date=ta_date)
+        r, _ = p.mohasebe_sod_old(az_date=az_date, ta_date=ta_date)
         return r
+
+    @login_required
+    def resolve_mohasebe_sod_for_all_summary(root, info, az_date, ta_date, offset, first):
+        current_user: User = info.context.user
+        sod_list: list[Profile, int] = []
+        if current_user.is_superuser:
+            for pr in Profile.objects.all():
+                p: Profile = pr
+                _, sod_sum = mohasebe_sod_1_nafar(p.id, az_date, ta_date)
+                sod_list.append((p, sod_sum))
+
+            return sod_list[offset: first]
+
+    @login_required
+    def resolve_mohasebe_sod_all_export_excel(root, info, az_date, ta_date):
+        return views.mohasebe_sod_all_export_excel(az_date=az_date, ta_date=ta_date)
 
     @staff_member_required
     def resolve_permissions(self, info, **kwargs):

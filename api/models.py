@@ -2,7 +2,6 @@ import datetime
 from random import randrange
 
 import jdatetime
-import openpyxl
 from crum import get_current_user
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AbstractUser
@@ -252,7 +251,7 @@ class Profile(models.Model):
     account_number = models.CharField(verbose_name='شماره حساب', max_length=100, blank=True, null=True)  # شماره حساب
     sheba = models.CharField(max_length=26, verbose_name='شماره شبا', null=True, blank=True)
     presenter = models.ForeignKey('self', verbose_name='معرف', blank=True, null=True,
-                                  on_delete=models.CASCADE, related_name='moarefi_shode_ha')  # moarefi_shode_ha
+                                  on_delete=models.CASCADE, related_name='moarefi_shode_ha')  # معرفی شده ها
     percent = models.IntegerField(blank=True, null=True)
     presenter_percent = models.IntegerField(blank=True, null=True)
     get_profit = models.BooleanField(blank=True, null=True)
@@ -379,7 +378,7 @@ class Profile(models.Model):
 
     @fsm_log_by
     @fsm_log_description
-    @transition(field=state, source="START", target="CONVERTED")
+    @transition(field=state, source="start", target="converted")
     def to_convert(self, by=None, description=None):
         """
         This method will contain the action that needs to be taken once the
@@ -389,19 +388,19 @@ class Profile(models.Model):
 
     @fsm_log_by
     @fsm_log_description
-    @transition(field=state, source="START", target="STUFF_ADDED")
+    @transition(field=state, source="start", target="stuff_added")
     def to_stuff_add(self, by=None, description=None):
         pass
 
     @fsm_log_by
     @fsm_log_description
-    @transition(field=state, source="CONVERTED", target="STUFF_ADDED")
+    @transition(field=state, source="converted", target="stuff_added")
     def converted_to_stuff_add(self, by=None, description=None):
         pass
 
     @fsm_log_by
     @fsm_log_description
-    @transition(field=state, source="START", target="CUSTOMER_ADDED")
+    @transition(field=state, source="start", target="customer_added")
     def to_customer_add(self, by=None, description=None):
         pass
 
@@ -412,25 +411,25 @@ class Profile(models.Model):
 
     @fsm_log_by
     @fsm_log_description
-    @transition(field=state, source="STUFF_ADDED", target="CUSTOMER_CONFIRMED")
+    @transition(field=state, source="stuff_added", target="customer_confirmed")
     def to_customer_confirm(self, by=None, description=None):
         pass
 
     @fsm_log_by
     @fsm_log_description
-    @transition(field=state, source="STUFF_ADDED", target="STUFF_ADDED")
+    @transition(field=state, source="stuff_added", target="stuff_added")
     def customer_reject(self, by=None, description=None):
         pass
 
     @fsm_log_by
     @fsm_log_description
-    @transition(field=state, source="CUSTOMER_ADDED", target="STUFF_CONFIRMED")
+    @transition(field=state, source="customer_added", target="stuff_confirmed")
     def to_stuff_confirm(self, by=None, description=None):
         pass
 
     @fsm_log_by
     @fsm_log_description
-    @transition(field=state, source="CUSTOMER_ADDED", target="CUSTOMER_ADDED")
+    @transition(field=state, source="customer_added", target="customer_added")
     def stuff_reject(self, by=None, description=None):
         pass
 
@@ -490,7 +489,7 @@ class Transaction(models.Model):
 
         )
 
-    @transition(field=state, source="START", target="CONVERTED")
+    @transition(field=state, source="start", target="converted")
     def to_convert(self):
         """
         This method will contain the action that needs to be taken once the
@@ -498,15 +497,15 @@ class Transaction(models.Model):
         """
         pass
 
-    @transition(field=state, source="START", target="STUFF_ADDED")
+    @transition(field=state, source="start", target="stuff_added")
     def to_stuff_add(self):
         pass
 
-    @transition(field=state, source="CONVERTED", target="STUFF_ADDED")
+    @transition(field=state, source="converted", target="stuff_added")
     def converted_to_stuff_add(self):
         pass
 
-    @transition(field=state, source="START", target="CUSTOMER_ADDED")
+    @transition(field=state, source="start", target="customer_added")
     def to_customer_add(self):
         pass
 
@@ -515,27 +514,27 @@ class Transaction(models.Model):
     #     print('after stuff checked')
     #     pass
 
-    @transition(field=state, source="STUFF_ADDED", target="CUSTOMER_CONFIRMED")
+    @transition(field=state, source="stuff_added", target="customer_confirmed")
     def to_customer_confirm(self):
         pass
 
-    @transition(field=state, source="STUFF_ADDED", target="STUFF_ADDED")
+    @transition(field=state, source="stuff_added", target="stuff_added")
     def customer_reject(self):
         pass
 
-    @transition(field=state, source="CUSTOMER_ADDED", target="STUFF_CONFIRMED")
+    @transition(field=state, source="customer_added", target="stuff_confirmed")
     def to_stuff_confirm(self):
         pass
 
-    @transition(field=state, source="CUSTOMER_ADDED", target="CUSTOMER_ADDED")
+    @transition(field=state, source="customer_added", target="customer_added")
     def stuff_reject(self):
         pass
 
-    @transition(field=state, source="CUSTOMER_CONFIRMED", target="BOSS_CONFIRMED")
+    @transition(field=state, source="customer_confirmed", target="boss_confirmed")
     def customer_confirm_to_boss_confirm(self):
         pass
 
-    @transition(field=state, source="STUFF_CONFIRMED", target="BOSS_CONFIRMED")
+    @transition(field=state, source="stuff_confirmed", target="boss_confirmed")
     def to_boss_confirm(self):
         pass
 
@@ -583,7 +582,7 @@ class Transaction(models.Model):
         sod = self.percent_calculator()  # نحوه محاسبه سود؟؟؟؟؟؟؟؟ اینجاست
         mohasebe_sod: ProfitCalculate = ProfitCalculate()
         mohasebe_sod.transaction = self
-        mohasebe_sod.Profile = self.profile
+        mohasebe_sod.profile = self.profile
         mohasebe_sod.kind_id = 1
         mohasebe_sod.date_from = start_date
         mohasebe_sod.date_to = end_date
@@ -652,7 +651,7 @@ class ProfitCalculate(models.Model):
     """
     # user = models.ForeignKey(get_user_model(), verbose_name='کاربر', on_delete=models.DO_NOTHING,
     #                          related_name='ProfitCalculates', blank=False, null=False)
-    Profile = models.ForeignKey(Profile, on_delete=models.DO_NOTHING, related_name='profiteCalculates', null=False,
+    profile = models.ForeignKey(Profile, on_delete=models.DO_NOTHING, related_name='profiteCalculates', null=False,
                                 blank=False)
     date_from = models.DateField(verbose_name='از تاریخ', blank=False, null=False)
     date_to = models.DateField(verbose_name='تا تاریخ', blank=True, null=True)
@@ -727,185 +726,15 @@ class OtpCode(models.Model):
         return self.phone
 
 
-def mohasebe_sod_all(az_date: datetime, ta_date: datetime):
-    profit_excel = openpyxl.Workbook()
-    profit_sheet = profit_excel.active
-    profit_sheet.title = "sadid Sheet1"
-
-    profit_sheet.cell(row=1, column=1, value="row num")
-    profit_sheet.cell(row=1, column=2, value="id")
-    profit_sheet.cell(row=1, column=3, value="name")
-    profit_sheet.cell(row=1, column=4, value="amount")
-    profit_sheet.cell(row=1, column=5, value="hesab")
-    profit_sheet.cell(row=1, column=6, value="محاسبه شده توسط نرم افزار قدیمی")
-    profit_sheet.cell(row=1, column=7, value="اختلاف")
-
-    profit_details_excel = openpyxl.Workbook()
-    profit_details_sheet = profit_details_excel.active
-    profit_details_sheet.title = "sadid Sheet1"
-
-    profit_details_sheet.cell(row=1, column=1, value="row num")
-    profit_details_sheet.cell(row=1, column=2, value="Profile_id")
-    profit_details_sheet.cell(row=1, column=3, value="Profile_name")
-    profit_details_sheet.cell(row=1, column=4, value="transaction_id")
-    profit_details_sheet.cell(row=1, column=5, value="percent")
-    profit_details_sheet.cell(row=1, column=6, value="amount")
-    profit_details_sheet.cell(row=1, column=7, value="transaction_date")
-    profit_details_sheet.cell(row=1, column=8, value="date_from")
-    profit_details_sheet.cell(row=1, column=9, value="date_to")
-    profit_details_sheet.cell(row=1, column=10, value="days")
-    profit_details_sheet.cell(row=1, column=11, value="calculated_amount")
-    profit_details_sheet.cell(row=1, column=12, value="تاریخ")
-
-    counter = detail_counter = 1
-    for pr in Profile.objects.all():
-        p: Profile = pr
-        try:
-            sod_list, sod_sum = mohasebe_sod_1_nafar(p.id, az_date, ta_date)
-
-            counter += 1
-            profit_sheet.cell(row=counter, column=1, value=counter - 1)
-            profit_sheet.cell(row=counter, column=2, value=f"{p.id}")
-            profit_sheet.cell(row=counter, column=3, value=f"{p.first_name} {p.last_name}")
-            profit_sheet.cell(row=counter, column=4, value=sod_sum)
-            profit_sheet.cell(row=counter, column=5, value=p.accountـnumber)
-
-            old_calculated_value = 0
-            try:
-                old_calculated: Transaction = Transaction.objects.filter(profile=pr, kind_id=3, effective_date=ta_date)[
-                    0]
-                old_calculated_value = old_calculated.amount
-            except IndexError:
-                pass
-
-            profit_sheet.cell(row=counter, column=6, value=old_calculated_value)
-            profit_sheet.cell(row=counter, column=7, value=sod_sum - old_calculated_value)
-
-            for pc in sod_list:
-                detail_counter = detail_counter + 1
-                pc: ProfitCalculate = pc
-                profit_details_sheet.cell(row=detail_counter, column=1, value=detail_counter - 1)
-                profit_details_sheet.cell(row=detail_counter, column=2, value=f"{pc.Profile.id}")
-                profit_details_sheet.cell(row=detail_counter, column=3,
-                                          value=f"{pc.Profile.first_name} {pc.Profile.last_name}")
-                profit_details_sheet.cell(row=detail_counter, column=4, value=f"{pc.transaction.id}")
-                profit_details_sheet.cell(row=detail_counter, column=5, value=f"{pc.percent}")
-                profit_details_sheet.cell(row=detail_counter, column=6, value=pc.amount)
-                profit_details_sheet.cell(row=detail_counter, column=7, value=f"{pc.transaction.effective_date}")
-                profit_details_sheet.cell(row=detail_counter, column=8, value=f"{pc.date_from}")
-                profit_details_sheet.cell(row=detail_counter, column=9, value=f"{pc.date_to}")
-                profit_details_sheet.cell(row=detail_counter, column=10, value=f"{pc.days}")
-                profit_details_sheet.cell(row=detail_counter, column=11, value=pc.calculated_amount)
-                profit_details_sheet.cell(row=detail_counter, column=12, value=f"{m2sh(pc.transaction.effective_date)}")
-
-        except Pelekan.MultipleObjectsReturned:
-            print(f'ERROR for {p}({p.id})  MultipleObjectsReturned')
-            sod_sum = f'ERROR for {p}({p.id})  MultipleObjectsReturned'
-        except Pelekan.DoesNotExist:
-            print(f'ERROR for {p}({p.id})  DoesNotExist')
-            sod_sum = f'ERROR for {p}({p.id})  DoesNotExist'
-
-    profit_excel.save(filename=f"profit-{jdatetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.xlsx")
-    profit_details_excel.save(filename=f"profit_details-{jdatetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.xlsx")
-    print(f'finish')
-
-
-def mohasebe_sod_moarefi_all(az_date: datetime, ta_date: datetime):
-    profit_excel = openpyxl.Workbook()
-    profit_sheet = profit_excel.active
-    profit_sheet.title = "sadid Sheet1"
-
-    profit_sheet.cell(row=1, column=1, value="row num")
-    profit_sheet.cell(row=1, column=2, value="id")
-    profit_sheet.cell(row=1, column=3, value="name")
-    profit_sheet.cell(row=1, column=4, value="amount")
-    profit_sheet.cell(row=1, column=5, value="hesab")
-    profit_sheet.cell(row=1, column=6, value="محاسبه شده توسط نرم افزار قدیمی")
-    profit_sheet.cell(row=1, column=7, value="اختلاف")
-
-    profit_details_excel = openpyxl.Workbook()
-    profit_details_sheet = profit_details_excel.active
-    profit_details_sheet.title = "sadid Sheet1"
-
-    profit_details_sheet.cell(row=1, column=1, value="row num")
-    profit_details_sheet.cell(row=1, column=2, value="Profile_id")
-    profit_details_sheet.cell(row=1, column=3, value="Profile_name")
-    profit_details_sheet.cell(row=1, column=4, value="transaction_id")
-    profit_details_sheet.cell(row=1, column=5, value="percent")
-    profit_details_sheet.cell(row=1, column=6, value="amount")
-    profit_details_sheet.cell(row=1, column=7, value="transaction_date")
-    profit_details_sheet.cell(row=1, column=8, value="date_from")
-    profit_details_sheet.cell(row=1, column=9, value="date_to")
-    profit_details_sheet.cell(row=1, column=10, value="days")
-    profit_details_sheet.cell(row=1, column=11, value="calculated_amount")
-    profit_details_sheet.cell(row=1, column=12, value="تاریخ")
-    profit_details_sheet.cell(row=1, column=13, value="name")
-
-    counter = detail_counter = 1
-    for pr in Profile.objects.all():
-        p: Profile = pr
-        try:
-            sod_list, sod_sum = mohasebe_sod_moarefi_1_nafar(p.id, az_date, ta_date)
-
-            counter += 1
-            profit_sheet.cell(row=counter, column=1, value=counter - 1)
-            profit_sheet.cell(row=counter, column=2, value=f"{p.id}")
-            profit_sheet.cell(row=counter, column=3, value=f"{p.first_name} {p.last_name}")
-            profit_sheet.cell(row=counter, column=4, value=f"{sod_sum}")
-            profit_sheet.cell(row=counter, column=5, value=p.accountـnumber)
-            old_calculated_value = 0
-            try:
-                old_calculated: Transaction = Transaction.objects.filter(profile=pr, kind_id=5,
-                                                                         effective_date=ta_date).aggregate(
-                    Sum('amount'))
-                old_calculated_value = old_calculated['amount__sum'] or 0
-            except IndexError:
-                pass
-
-            profit_sheet.cell(row=counter, column=6, value=old_calculated_value)
-            profit_sheet.cell(row=counter, column=7, value=sod_sum - old_calculated_value)
-
-            for pc in sod_list:
-                detail_counter = detail_counter + 1
-                pc: ProfitCalculate = pc
-                profit_details_sheet.cell(row=detail_counter, column=1, value=detail_counter - 1)
-                profit_details_sheet.cell(row=detail_counter, column=2, value=f"{pc.Profile.id}")
-                profit_details_sheet.cell(row=detail_counter, column=3,
-                                          value=f"{pc.Profile.first_name} {pc.Profile.last_name}")
-                profit_details_sheet.cell(row=detail_counter, column=4, value=f"{pc.transaction.id}")
-                profit_details_sheet.cell(row=detail_counter, column=5, value=f"{pc.percent}")
-                profit_details_sheet.cell(row=detail_counter, column=6, value=f"{pc.amount}")
-                profit_details_sheet.cell(row=detail_counter, column=7, value=f"{pc.transaction.effective_date}")
-                profit_details_sheet.cell(row=detail_counter, column=8, value=f"{pc.date_from}")
-                profit_details_sheet.cell(row=detail_counter, column=9, value=f"{pc.date_to}")
-                profit_details_sheet.cell(row=detail_counter, column=10, value=f"{pc.days}")
-                profit_details_sheet.cell(row=detail_counter, column=11, value=f"{pc.calculated_amount}")
-                profit_details_sheet.cell(row=detail_counter, column=12, value=f"{m2sh(pc.transaction.effective_date)}")
-                profit_details_sheet.cell(row=detail_counter, column=13,
-                                          value=f"{pc.transaction.profile.first_name} {pc.transaction.profile.last_name}")
-
-        except Pelekan.MultipleObjectsReturned:
-            print(f'ERROR for {p}({p.id})  MultipleObjectsReturned')
-            sod_sum = f'ERROR for {p}({p.id})  MultipleObjectsReturned'
-        except Pelekan.DoesNotExist:
-            print(f'ERROR for {p}({p.id})  DoesNotExist')
-            sod_sum = f'ERROR for {p}({p.id})  DoesNotExist'
-
-    profit_excel.save(filename=f"profit-moarefi-{jdatetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.xlsx")
-    profit_details_excel.save(
-        filename=f"profit-moarefi_details-{jdatetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.xlsx")
-    print(f'finish')
-
-
-def mohasebe_sod_1_nafar(a: int, az_date: datetime, ta_date: datetime):
-    m = Profile.objects.get(id=a)
-    sod_list, sod_sum = m.mohasebe_sod_old(az_date=az_date, ta_date=ta_date)
+def mohasebe_sod_1_nafar(profile_id: int, az_date: datetime, ta_date: datetime):
+    p: Profile = Profile.objects.get(id=profile_id)
+    sod_list, sod_sum = p.mohasebe_sod_old(az_date=az_date, ta_date=ta_date)
     return sod_list, sod_sum
 
 
-def mohasebe_sod_moarefi_1_nafar(a: int, az_date: datetime, ta_date: datetime):
-    m = Profile.objects.get(id=a)
-    sod_list, sod_sum = m.mohasebe_sod_moarefi(az_date=az_date, ta_date=ta_date)
+def mohasebe_sod_moarefi_1_nafar(profile_id: int, az_date: datetime, ta_date: datetime):
+    p: Profile = Profile.objects.get(id=profile_id)
+    sod_list, sod_sum = p.mohasebe_sod_moarefi(az_date=az_date, ta_date=ta_date)
     return sod_list, sod_sum
 
 
