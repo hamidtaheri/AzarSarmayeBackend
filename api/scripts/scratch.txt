@@ -13,6 +13,9 @@ database URL : jdbc:sqlserver://localhost:1433
 ./manage.py dumpdata --indent 4 --natural-foreign --natural-primary --output api_full_1400_09_17.json
 python -Xutf8 manage.py dumpdata --indent 4 --natural-foreign --natural-primary --output api_full_1400_09_17.json # در ویندوز
 
+
+./manage.py graph_transitions -o api/wf_images/wf.jpg
+
 # نمایش پورت های  ۸۰ در حال استفاده:
 # sudo lsof -t -i tcp:8000
 # بستن آنها

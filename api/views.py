@@ -65,8 +65,8 @@ def mohasebe_sod_all_export_excel(az_date: datetime, ta_date: datetime):
         except Pelekan.DoesNotExist:
             print(f'ERROR for {p}({p.id})  DoesNotExist')
             sod_sum = f'ERROR for {p}({p.id})  DoesNotExist'
-    filename = f"profit-{jdatetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.xlsx"
-    profit_excel.save(filename=f"{settings.MEDIA_ROOT}\\{filename}")
+    filename = f"profit_calc/profit-{jdatetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.xlsx"
+    profit_excel.save(filename=f"{settings.MEDIA_ROOT}/{filename}")
     print(f'finish')
     return f"{settings.MEDIA_URL}{filename}"
 

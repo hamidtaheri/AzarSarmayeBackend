@@ -33,9 +33,10 @@ class User(AbstractUser):
     def __str__(self):
         return f'{self.username}'
 
-    permissions = (
-        ("can_add_user", "میتواند کاربر جدید ایجاد کند"),
-    )
+    class Meta:
+        permissions = (
+            ("can_add_user", "میتواند کاربر جدید ایجاد کند"),
+        )
 
 
 class ImageKind(models.Model):
@@ -239,6 +240,13 @@ class City(models.Model):
         return f'{self.name}'
 
 
+def customer_reject_permision(instance, user):
+    if user.has_perm('api.WF_CUSTOMER_ROLE'):
+        return True
+    else:
+        return False
+
+
 class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile', blank=True, null=True, )
     first_name = models.CharField(max_length=100, blank=True, null=True)
@@ -394,7 +402,7 @@ class Profile(models.Model):
 
     @fsm_log_by
     @fsm_log_description
-    @transition(field=state, source="converted", target="stuff_added")
+    @transition(field=state, source="converted", target="stuff_added", permission='api.WF_STUFF_ROLE')
     def converted_to_stuff_add(self, by=None, description=None):
         pass
 
@@ -411,13 +419,14 @@ class Profile(models.Model):
 
     @fsm_log_by
     @fsm_log_description
-    @transition(field=state, source="stuff_added", target="customer_confirmed")
+    @transition(field=state, source="stuff_added", target="customer_confirmed", permission='api.WF_CUSTOMER_ROLE')
     def to_customer_confirm(self, by=None, description=None):
         pass
 
     @fsm_log_by
     @fsm_log_description
-    @transition(field=state, source="stuff_added", target="stuff_added")
+    @transition(field=state, source="stuff_added", target="stuff_added",
+                permission=customer_reject_permision)  # 'api.WF_CUSTOMER_ROLE')
     def customer_reject(self, by=None, description=None):
         pass
 
@@ -468,7 +477,7 @@ class Transaction(models.Model):
     # صرفا برای محاسبه مهر۱۴۰۰ برای اینکه محاسبه سود معرف به شیوه قدیمی محاسبه شود
     DarMelyoon_Moaref = models.IntegerField(blank=True, null=True)
     images = GenericRelation(Image, related_name='transaction_images')
-    state = FSMField(choices=WorkFlowStates.STATES, protected=False)  # transaction workflow state
+    state = FSMField(choices=WorkFlowStates.STATES, protected=True)  # transaction workflow state
 
     # logging fields
     created = models.DateTimeField(auto_now_add=True, editable=False)
@@ -724,6 +733,15 @@ class OtpCode(models.Model):
 
     def __str__(self):
         return self.phone
+
+
+class TransactionRequest(models.Model):
+    REQUESTKind = (
+        ('RENEW', 'تجدید'),
+        ('', 'ابطال'),  # ابطال قراردادی که مدت آن به پایان رسیده
+        ('', 'فسخ')  # فسخ قراردادی که مدت زمان أن به پایان نرسیده
+    )
+    transaction = models.ForeignKey(to=Transaction, on_delete=models.CASCADE, blank=False, null=False)
 
 
 def mohasebe_sod_1_nafar(profile_id: int, az_date: datetime, ta_date: datetime):

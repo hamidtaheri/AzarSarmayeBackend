@@ -1,5 +1,6 @@
 import graphene
 from django.contrib.auth.models import Group, Permission
+from django_fsm import get_available_FIELD_transitions
 from django_fsm_log.models import StateLog
 from graphene import relay, Enum, Int, Date, ObjectType
 from graphene_django import DjangoObjectType
@@ -98,6 +99,7 @@ class ProfileType(DjangoObjectType):
         az_date=Date(required=True, description='از تاریخ'),
         ta_date=Date(required=True, description='تا تاریخ'),
     )
+    workflow_transition = graphene.List(of_type=graphene.String, description='مرحله بعدی در گردش کار')
 
     class Meta:
         model = Profile
@@ -165,6 +167,13 @@ class ProfileType(DjangoObjectType):
 
         r, sum_sod = user.mohasebe_sod_old(az_date=az_date, ta_date=ta_date)
         return sum_sod
+
+    def resolve_workflow_transition(self, info):
+        current_user: User = info.context.user
+        avail_user_trans = self.get_available_user_state_transitions(user=current_user)
+        avail_user_trans_list = list(avail_user_trans)
+        attr = (o.name for o in avail_user_trans_list)
+        return attr
 
     @classmethod
     def get_queryset(cls, queryset, info):
@@ -336,9 +345,19 @@ class Query(graphene.ObjectType):
     def resolve_profiles(self, info, **kwargs):
         current_user: User = info.context.user
         profiles = Profile.objects.all()
-        if not current_user.has_perm('view_all_profiles'):  # کاربر دسترسی ندارد
-            #  فیلتر بر اساس کاربر جاری
-            profiles = Profile.objects.filter(user=current_user)
+        p = Profile.objects.get(id=10)
+
+        avail_trans = list(p.get_available_state_transitions())
+        all_trans = list(p.get_all_state_transitions())
+        avail_user_trans = p.get_available_user_state_transitions(user=current_user)
+        avail_user_trans_list = list(avail_user_trans)
+        print(avail_user_trans_list)
+        for t in avail_user_trans_list:
+            print(t.name)
+
+        # if not current_user.has_perm('view_all_profiles'):  # کاربر دسترسی ندارد
+        #     #  فیلتر بر اساس کاربر جاری
+        #     profiles = Profile.objects.filter(user=current_user)
         if current_user.has_perm('WF_STUFF_ROLE'):
             profiles = profiles.filter(state__in=["CONVERTED", "CUSTOMER_ADDED", "STUFF_ADDED"])  # "START",
         return profiles
@@ -363,12 +382,12 @@ class Query(graphene.ObjectType):
         current_user: User = info.context.user
         sod_list: list[Profile, int] = []
         if current_user.is_superuser:
-            for pr in Profile.objects.all():
+            for pr in Profile.objects.all()[offset: first]:
                 p: Profile = pr
                 _, sod_sum = mohasebe_sod_1_nafar(p.id, az_date, ta_date)
                 sod_list.append((p, sod_sum))
 
-            return sod_list[offset: first]
+            return sod_list
 
     @login_required
     def resolve_mohasebe_sod_all_export_excel(root, info, az_date, ta_date):

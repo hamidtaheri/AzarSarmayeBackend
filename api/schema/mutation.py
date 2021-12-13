@@ -502,6 +502,34 @@ class CustomerConfirmProfile(graphene.Mutation):
             return CustomerConfirmProfile(ok=True, errors=errors)
 
 
+class ProfileWorkFlowTransition(graphene.Mutation):
+    ok = graphene.Boolean(required=True)
+    errors = graphene.List(graphene.String, required=True)
+
+    class Arguments:
+        id = graphene.Int(required=True)
+        transition = graphene.String(required=True, description='transition')
+    # @permission_required('WF_STUFF_ROLE')
+    def mutate(self, info, id , transition):
+        errors = []
+        current_user: User = info.context.user
+
+        profile: Profile = Profile.objects.get(id=id)
+        avail_user_trans = list(profile.get_available_user_state_transitions(user=current_user))
+        attr = list(o.name for o in avail_user_trans)
+        if transition in attr:
+            getattr(profile, transition)()
+            profile.save()
+        else:
+            errors.append('Error')
+
+        if errors:
+            return ProfileWorkFlowTransition(ok=False, errors=errors)
+        else:
+            return ProfileWorkFlowTransition(ok=True, errors=errors)
+
+
+
 class Mutation(graphene.ObjectType):
     login = Login.Field()
     login_otp = LoginOTP.Field()
@@ -512,6 +540,7 @@ class Mutation(graphene.ObjectType):
     create_profile = CreateProfile.Field()
     update_profile = UpdateProfile.Field()
     stuff_confirm_profile = StuffConfirmProfile.Field(description='')
+    profile_workflow_transition = ProfileWorkFlowTransition.Field(description='مرحله بعد در گردش کار پروفایل')
     # create_tarakonesh = CreateTarakonesh.Field()
     token_auth = graphql_jwt.ObtainJSONWebToken.Field()
     delete_token = graphql_jwt.Revoke.Field()
