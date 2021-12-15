@@ -735,13 +735,35 @@ class OtpCode(models.Model):
         return self.phone
 
 
+class TransactionRequestKind(models.Model):
+    # RENEW = 'RENEW'
+    # REVOKE = 'REVOKE'
+    # CANCELLATION = 'CANCELLATION'
+    # REQUESTKind = (
+    #     (RENEW, 'تجدید'),
+    #     (REVOKE, 'ابطال'),  # پایان قراردادی که مدت آن به پایان رسیده
+    #     (CANCELLATION, 'فسخ')  # پایان قراردادی که مدت زمان أن به پایان نرسیده
+    # )
+    title = models.CharField(max_length=30)
+    description = models.TextField(verbose_name='توضیح')
+
+    def __str__(self):
+        return f'{self.id}-{self.title}'
+
+
 class TransactionRequest(models.Model):
-    REQUESTKind = (
-        ('RENEW', 'تجدید'),
-        ('', 'ابطال'),  # ابطال قراردادی که مدت آن به پایان رسیده
-        ('', 'فسخ')  # فسخ قراردادی که مدت زمان أن به پایان نرسیده
-    )
     transaction = models.ForeignKey(to=Transaction, on_delete=models.CASCADE, blank=False, null=False)
+    # user = models.ForeignKey(to=User, on_delete=models.CASCADE, blank=False, null=False)
+    kind = models.ForeignKey(TransactionRequestKind, on_delete=models.CASCADE, blank=False, null=False)
+    created = models.DateTimeField(auto_now=True)
+    description = models.TextField(null=True, blank=True)
+
+    def __str__(self):
+        return f'{self.kind.title} - {self.transaction}'
+    class Meta:
+        permissions = (
+            ("view_all_TransactionRequests", "مشاهده همه درخواست های مربوط به تراکنش ها"),
+            ("add_TransactionRequests_for_others", "ایجاد درخواست مربوط به تراکنش برای دیگران"))
 
 
 def mohasebe_sod_1_nafar(profile_id: int, az_date: datetime, ta_date: datetime):

@@ -193,6 +193,24 @@ class MohasebeSodForAllSummaryType(ObjectType):
         return self[0]
 
 
+class TransactionRequestType(DjangoObjectType):
+    id = graphene.ID(source='pk', required=True)
+
+    class Meta:
+        model = TransactionRequest
+        fields = ('transaction', 'kind', 'created', 'description')
+        filter_fields = {'id': ['exact'], 'transaction__id': ['exact'], 'kind__id': ['exact'], }
+        interfaces = (relay.Node,)
+
+
+class TransactionRequestKindType(DjangoObjectType):
+    id = graphene.ID(source='pk', required=True)
+
+    class Meta:
+        model = TransactionRequestKind
+        fields = ['id', 'title', 'description', ]
+
+
 class TransactionType(DjangoObjectType):
     id = graphene.ID(source='pk', required=True)
     amount = graphene.Float(required=True, description='مبلغ')
@@ -257,7 +275,7 @@ class CityType(DjangoObjectType):
 
     class Meta:
         model = City
-        fields = ['name', 'id', ]
+        fields = ('name', 'id')
         filter_fields = {'province__id': ['exact'], 'name': ['icontains', 'istartswith']}
         interfaces = (relay.Node,)
 
@@ -283,6 +301,10 @@ class Query(graphene.ObjectType):
     users = graphene.List(UserType)
     last_logged_in_users = graphene.List(UserType, count=Int())
     profiles = DjangoFilterConnectionField(ProfileType)
+
+    transaction_request_kinds = graphene.List(TransactionRequestKindType)
+
+    transaction_requests = DjangoFilterConnectionField(TransactionRequestType)
     transactions = DjangoFilterConnectionField(TransactionType)
     transaction_kinds = graphene.List(TransactionKindType)
     mohasebe_sod = graphene.List(ProfitCalculateType,
@@ -306,7 +328,9 @@ class Query(graphene.ObjectType):
     permissions = graphene.List(PermissionType, description='')
     groups = graphene.List(GroupType, description='گروه های دسترسی')
     provinces = graphene.List(ProvinceType)
-    cites = DjangoFilterConnectionField(CityType)
+    cities = DjangoFilterConnectionField(CityType)
+
+    #################
 
     @login_required
     def resolve_me(root, info, **kwargs):
@@ -329,6 +353,20 @@ class Query(graphene.ObjectType):
         return User.objects.order_by('-last_login')[0:10]
 
     @login_required
+    def resolve_transaction_requests(root, info):
+        current_user: get_user_model() = info.context.user
+        tr_reqs = TransactionRequest.objects.all()
+
+        if not current_user.has_perm('api.view_all_TransactionRequests'):
+            tr_reqs = tr_reqs.filter(transaction__profile__user=current_user)
+
+        return tr_reqs
+
+    @staticmethod
+    def resolve_transaction_request_kinds(root, info, **kwargs):
+        return TransactionRequestKind.objects.all()
+
+    @login_required
     def resolve_transactions(root, info, **kwargs):
         current_user: get_user_model() = info.context.user
         # if user.is_anonymous or user is None:
@@ -345,19 +383,19 @@ class Query(graphene.ObjectType):
     def resolve_profiles(self, info, **kwargs):
         current_user: User = info.context.user
         profiles = Profile.objects.all()
-        p = Profile.objects.get(id=10)
+        # p = Profile.objects.get(id=10)
+        #
+        # avail_trans = list(p.get_available_state_transitions())
+        # all_trans = list(p.get_all_state_transitions())
+        # avail_user_trans = p.get_available_user_state_transitions(user=current_user)
+        # avail_user_trans_list = list(avail_user_trans)
+        # print(avail_user_trans_list)
+        # for t in avail_user_trans_list:
+        #     print(t.name)
 
-        avail_trans = list(p.get_available_state_transitions())
-        all_trans = list(p.get_all_state_transitions())
-        avail_user_trans = p.get_available_user_state_transitions(user=current_user)
-        avail_user_trans_list = list(avail_user_trans)
-        print(avail_user_trans_list)
-        for t in avail_user_trans_list:
-            print(t.name)
-
-        # if not current_user.has_perm('view_all_profiles'):  # کاربر دسترسی ندارد
-        #     #  فیلتر بر اساس کاربر جاری
-        #     profiles = Profile.objects.filter(user=current_user)
+        if not current_user.has_perm('view_all_profiles'):  # کاربر دسترسی ندارد
+            #  فیلتر بر اساس کاربر جاری
+            profiles = Profile.objects.filter(user=current_user)
         if current_user.has_perm('WF_STUFF_ROLE'):
             profiles = profiles.filter(state__in=["CONVERTED", "CUSTOMER_ADDED", "STUFF_ADDED"])  # "START",
         return profiles
@@ -406,5 +444,5 @@ class Query(graphene.ObjectType):
     def resolve_provinces(root, info):
         return Province.objects.all()
 
-    def resolve_cites(root, info, **kwargs):
+    def resolve_cities(root, info, **kwargs):
         return City.objects.all()

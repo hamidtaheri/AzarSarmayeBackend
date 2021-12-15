@@ -247,6 +247,34 @@ class UpdateTransaction(graphene.Mutation):
         return UpdateTransactionPayload(transaction=transaction)
 
 
+class CreateTransactionRequest(graphene.Mutation):
+    class Arguments:
+        transaction_id = Int(required=True)
+        kind_id = Int(required=True)
+        description = String()
+
+    ok = graphene.Boolean(required=True)
+    errors = graphene.List(graphene.String, required=True)
+
+    @login_required
+    def mutate(self, info, transaction_id, kind_id, description):
+        errors = []
+        current_user: User = info.context.user
+        try:
+            tr = Transaction.objects.get(id=transaction_id)
+        except ObjectDoesNotExist:
+            errors.append('transaction dos not exist')
+            return CreateTransactionRequest(ok=False, errors=errors)
+        if current_user.has_perm("api.add_TransactionRequests_for_others") or tr.profile.user == current_user:
+            TransactionRequest.objects.create(transaction_id=transaction_id, kind_id=kind_id, description=description)
+        else:
+            errors.append('دسترسی ندارید')
+        if errors:
+            return CreateTransactionRequest(ok=False, errors=errors)
+        else:
+            return CreateTransactionRequest(ok=True, errors=errors)
+
+
 class UserInput(graphene.InputObjectType):
     id = ID()
     username = String(required=True)
@@ -509,8 +537,9 @@ class ProfileWorkFlowTransition(graphene.Mutation):
     class Arguments:
         id = graphene.Int(required=True)
         transition = graphene.String(required=True, description='transition')
+
     # @permission_required('WF_STUFF_ROLE')
-    def mutate(self, info, id , transition):
+    def mutate(self, info, id, transition):
         errors = []
         current_user: User = info.context.user
 
@@ -529,12 +558,12 @@ class ProfileWorkFlowTransition(graphene.Mutation):
             return ProfileWorkFlowTransition(ok=True, errors=errors)
 
 
-
 class Mutation(graphene.ObjectType):
     login = Login.Field()
     login_otp = LoginOTP.Field()
     change_password = ChangePassword.Field()
     create_transaction = CreateTransaction.Field()
+    create_transaction_request = CreateTransactionRequest.Field()
     update_transaction = UpdateTransaction.Field()
     create_user = CreateUser.Field(description='ایجاد کاربر')
     create_profile = CreateProfile.Field()
