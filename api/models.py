@@ -219,9 +219,19 @@ class WorkFlowStates(models.Model):
         verbose_name_plural = "مراحل گردش کار"
 
         permissions = (
-            ("WF_STUFF_ROLE", "نقش کارمند در گردش کار"),
-            ("WF_CUSTOMER_ROLE", "نقش مشتری در گردش کار"),
-            ("WF_BOSS_RULE", "نقش مدیر عامل در گردش کار"),
+            # ('',''), #
+            # ("WF_STUFF_ROLE", "نقش کارمند در گردش کار"),
+            # ("WF_CUSTOMER_ROLE", "نقش مشتری در گردش کار"),
+            # ("WF_BOSS_RULE", "نقش مدیر عامل در گردش کار"),
+            ('START_WF_STATE', 'مرحله شروع در گردش کار'),  #
+            ('CONVERTED_WF_STATE', 'مرحله کانورت شده در گردش کار'),  #
+            ('STUFF_ADDED_WF_STATE', 'مرحله اضافه شده توسط کارمند در گردش کار'),  #
+            ('CUSTOMER_ADDED_WF_STATE', 'مرحله اضافه شده توسط مشتری در گردش کار'),  #
+            ('STUFF_CHECKED_WF_STATE', 'مرحله بررسی شده توسط کارمند در گردش کار'),  #
+            ('STUFF_CONFIRMED_WF_STATE', 'مرحله تایید شده توسط کارمند در گردش کار'),  #
+            ('CUSTOMER_CONFIRMED_WF_STATE', 'مرحله تایید شده توسط مشتری در گردش کار'),  #
+            ('BOSS_CONFIRMED_WF_STATE', 'مرحله تایید شده توسط مدیر عامل در گردش کار'),  #
+
         )
 
 
@@ -247,17 +257,28 @@ def customer_reject_permision(instance, user):
         return False
 
 
+class Bank(models.Model):
+    name = models.CharField(max_length=50, blank=False, null=False)
+    description = models.TextField(blank=True, null=True)
+
+    def __str__(self):
+        return f'{self.name}'
+
+
 class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile', blank=True, null=True, )
     first_name = models.CharField(max_length=100, blank=True, null=True)
     last_name = models.CharField(max_length=100, blank=True, null=True)
     father_name = models.CharField(max_length=100, blank=True, null=True)
-    national_code = models.CharField(max_length=10, blank=True, null=True)
+    national_code = models.CharField(verbose_name='کد ملی', max_length=10, blank=True, null=True)
+    id_number = models.CharField(verbose_name='شماره شناسنامه', max_length=10, blank=True, null=True)
     birth_place = models.ForeignKey(City, verbose_name='محل تولد', on_delete=models.CASCADE, null=True, blank=True,
                                     related_name='+')
     birth_date = models.DateField(verbose_name='تاریخ تولد', null=True, blank=True)
     account_number = models.CharField(verbose_name='شماره حساب', max_length=100, blank=True, null=True)  # شماره حساب
     sheba = models.CharField(max_length=26, verbose_name='شماره شبا', null=True, blank=True)
+    card_number = models.CharField(max_length=20, verbose_name='شماره کارت', null=True, blank=True)
+    bank = models.ForeignKey(Bank, verbose_name='بانک', on_delete=models.DO_NOTHING, blank=True, null=True)
     presenter = models.ForeignKey('self', verbose_name='معرف', blank=True, null=True,
                                   on_delete=models.CASCADE, related_name='moarefi_shode_ha')  # معرفی شده ها
     percent = models.IntegerField(blank=True, null=True)
@@ -266,10 +287,13 @@ class Profile(models.Model):
     description = models.CharField(max_length=100, blank=True, null=True)
     charge_to_presenter = models.BooleanField(blank=True, null=True)
     self_presenter = models.BooleanField(blank=True, null=True)
-    address = models.CharField(max_length=500, blank=True, null=True)
+
+    address = models.CharField(verbose_name='آدرس', max_length=500, blank=True, null=True)
     city = models.ForeignKey(City, verbose_name='شهر', on_delete=models.CASCADE, null=True, blank=True)
     postal_code = models.CharField(max_length=10, verbose_name='کد پستی', null=True, blank=True)
     tel = models.CharField(max_length=20, blank=True, null=True)
+    home_phone = models.CharField(verbose_name='تلفن منزل', max_length=20, blank=True, null=True)
+    office_phone = models.CharField(verbose_name='تلفن اداره', max_length=20, blank=True, null=True)
     mobile1 = models.CharField(max_length=11, blank=True, null=True)
     mobile2 = models.CharField(max_length=11, blank=True, null=True)
     email = models.EmailField(blank=True, null=True)
@@ -292,6 +316,20 @@ class Profile(models.Model):
             ("can_edit_profile_for_self", "ویرایش پروفایل خودش"),
             ("can_edit_profile_for_all", "ویرایش پروفایل دیگران"),
             ("can_delete_profile_for_all", "حذف پروفایل"),
+            # ("", "")  #
+            ("WF_TRANSITION_PROFILE_START_TO_CONVERTED", "  گردش کار پروفایل از شروع به کانورت شده"),
+            ("WF_TRANSITION_PROFILE_START_TO_STUFF_ADDED", "گردش کار پروفایل از شروع به افزوده شده توسط کارمند"),  #
+            ("WF_TRANSITION_PROFILE_START_TO_CUSTOMER_ADDED", "گردش کار پروفایل از شروع به افزوده شده توسط مشتری"),  #
+            ("WF_TRANSITION_PROFILE_CONVERTED_TO_STUFF_ADDED",
+             "گردش کار پروفایل از کانورت شده به افزوده شده توسط کارمند"),  #
+            ("WF_TRANSITION_PROFILE_STUFF_ADDED_TO_STUFF_ADDED",
+             "گردش کار پروفایل از افزوده شده توسط کارمند به افزوده شده توسط کارمند (عدم تایید توسط مشتری)"),  #
+            ("WF_TRANSITION_PROFILE_STUFF_ADDED_TO_COSTUMER_CONFIRMED",
+             "گردش کار پروفایل از افزوده شده توسط کارمند به تایید شده توسط مشتری"),  #
+            ("WF_TRANSITION_PROFILE_COSTUMER_ADDED_TO_COSTUMER_ADDED",
+             "گردش کار پروفایل افزوده شده توسط مشتری به افزوده شده توسط مشتری(عدم تایید توسط کارمند)"),  #
+            ("WF_TRANSITION_PROFILE_COSTUMER_ADDED_TO_STUFF_CONFIRMED",
+             "گردش کار پروفایل از افزوده شده توسط مشتری به تایید توسط کارمند"),  #
         )
 
     @property
@@ -760,6 +798,7 @@ class TransactionRequest(models.Model):
 
     def __str__(self):
         return f'{self.kind.title} - {self.transaction}'
+
     class Meta:
         permissions = (
             ("view_all_TransactionRequests", "مشاهده همه درخواست های مربوط به تراکنش ها"),
