@@ -100,14 +100,17 @@ class ProfileType(DjangoObjectType):
         ta_date=Date(required=True, description='تا تاریخ'),
     )
     workflow_transition = graphene.List(of_type=graphene.String, description='مرحله بعدی در گردش کار')
+    province_id = graphene.Int(required=False)
 
     class Meta:
         model = Profile
         fields = (
-            'id', 'user', 'first_name', 'last_name', 'birth_place', 'national_code',
-            'address', 'postal_code', 'tel', 'mobile1', 'mobile2', 'email',
+            'id', 'user', 'first_name', 'last_name', 'father_name', 'birth_place', 'national_code',
+            'id_number', 'birth_date',
+            'account_number', 'sheba', 'card_number', 'bank',
+            'address', 'city', 'postal_code', 'tel', 'home_phone', 'office_phone', 'mobile1', 'mobile2', 'email',
             'description', 'transactions', 'images',
-            'account_number')
+        )
         filter_fields = {
             'id': ['exact'],
             'presenter__id': ['exact'],
@@ -174,6 +177,10 @@ class ProfileType(DjangoObjectType):
         avail_user_trans_list = list(avail_user_trans)
         attr = (o.name for o in avail_user_trans_list)
         return attr
+
+    def resolve_province_id(self, info):
+        p: Profile = self
+        return p.city.province.id
 
     @classmethod
     def get_queryset(cls, queryset, info):
@@ -290,6 +297,27 @@ class ProvinceType(DjangoObjectType):
 #     class Meta:
 #         model = WorkFlowStates
 #
+def allowed_workflow_sates(user: User) -> list:
+    workflow_sates = []
+    if user.has_perm('api.START_WF_STATE'):
+        workflow_sates.append('start')
+    if user.has_perm('api.CONVERTED_WF_STATE'):
+        workflow_sates.append('converted')
+    if user.has_perm('api.STUFF_ADDED_WF_STATE'):
+        workflow_sates.append('staff_added')
+    if user.has_perm('api.CUSTOMER_ADDED_WF_STATE'):
+        workflow_sates.append('customer_added')
+    if user.has_perm('api.STUFF_CHECKED_WF_STATE'):
+        workflow_sates.append('stuff_checked')
+    if user.has_perm('api.STUFF_CONFIRMED_WF_STATE'):
+        workflow_sates.append('stuff_confirmed')
+    if user.has_perm('api.CUSTOMER_CONFIRMED_WF_STATE'):
+        workflow_sates.append('customer_confirmed')
+    if user.has_perm('api.BOSS_CONFIRMED_WF_STATE'):
+        workflow_sates.append('boss_confirmed')
+
+    return workflow_sates
+
 
 class Query(graphene.ObjectType):
     me = graphene.Field(UserType)
@@ -393,11 +421,12 @@ class Query(graphene.ObjectType):
         # for t in avail_user_trans_list:
         #     print(t.name)
 
-        if not current_user.has_perm('view_all_profiles'):  # کاربر دسترسی ندارد
+        if not current_user.has_perm('api.view_all_profiles'):  # کاربر دسترسی ندارد
             #  فیلتر بر اساس کاربر جاری
             profiles = Profile.objects.filter(user=current_user)
-        if current_user.has_perm('WF_STUFF_ROLE'):
-            profiles = profiles.filter(state__in=["CONVERTED", "CUSTOMER_ADDED", "STUFF_ADDED"])  # "START",
+        #     فیلتر پروفایل ها بر اساس دسترسی کاربر به مرحله در گردش کار
+        allowed_workflow = allowed_workflow_sates(current_user)
+        profiles = profiles.filter(state__in=allowed_workflow)  # "START",
         return profiles
 
     def resolve_transaction_kinds(root, info):

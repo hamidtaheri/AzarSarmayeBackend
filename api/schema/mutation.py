@@ -306,18 +306,29 @@ class CreateProfileInput(graphene.InputObjectType):
     user = UserInput(required=True).Field()
     first_name = String()
     last_name = String()
+    father_name = String()
+    birth_place_id = Int(required=False, )
     national_code = String()
-    address = String()
-    shomare_kart = String()
+    id_number = String()
+    birth_date = String()
     account_number = String()
-    presenter_id = Int(required=False, description='id معرف')
-    description = String()
+    sheba = String()
+    card_number = String()
+    bank_id = Int(required=False, )
+
+    address = String()
+    city_id = Int(required=False, )
+    postal_code = String()
+
     tel = String()
+    home_phone = String()
+    office_phone = String()
     mobile1 = String()
     mobile2 = String()
     email = String()
     images = graphene.List(CreateImageInput)
-    city_id = Int(required=False, )
+    description = String()
+
     # file = Upload(required=True)
 
 
@@ -335,50 +346,52 @@ class CreateProfile(graphene.Mutation):
 
     Output = CreateProfilePayload
 
-    @permission_required("can_add_profile")
+    @permission_required("api.can_add_profile")
     def mutate(self, info, input_data: CreateProfileInput):
         current_user: User = info.context.user
         new_profile_id = Profile.objects.creation_counter
         new_profile: Profile = Profile()
 
         # حلقه برای ست کردن مقادیر به جز مقادیر خاص که لازم است کنترل شوند
-        for k, v in input_data.items():
-            if k == 'user':
-                try:
-                    new_user: User = User(username=input_data.user.username)
-                    new_user.set_password(raw_password=input_data.user.password)
-                    new_user.save()
-                    new_profile.user = new_user
-                except IntegrityError as e:
-                    raise MyException('نام کاربری تکراری است')
-                continue
-            elif k == 'presenter_id':
-                try:
-                    presenter: Profile = Profile.objects.get(id=input_data.presenter_id)
-                    # new_profile.presenter = presenter
-                except Profile.DoesNotExist:
-                    raise MyException('معرف پیدا نشد')
-            elif k == 'images':
-                for img in input_data.images:
-                    new_img = Image.objects.create(object_id=new_profile_id, content_type_id=4)
-                    for ki, vi in img.items():
-                        setattr(new_img, ki, vi)
-                    new_img.save()
+        try:
+            for k, v in input_data.items():
+                if k == 'user':
+                    try:
+                        new_user: User = User(username=input_data.user.username)
+                        new_user.set_password(raw_password=input_data.user.password)
+                        # new_user.save()
+                        # new_profile.user = new_user
+                    except IntegrityError as e:
+                        raise MyException('نام کاربری تکراری است')
+                    continue
+                elif k == 'presenter_id':
+                    try:
+                        presenter: Profile = Profile.objects.get(id=input_data.presenter_id)
+                        # new_profile.presenter = presenter
+                    except Profile.DoesNotExist:
+                        raise MyException('معرف پیدا نشد')
+                elif k == 'images':
+                    for img in input_data.images:
+                        new_img = Image.objects.create(object_id=new_profile_id, content_type_id=4)
+                        for ki, vi in img.items():
+                            setattr(new_img, ki, vi)
+                        new_img.save()
 
-                continue
-            # elif k == 'city':
-            #     setattr(new_profile, 'city_id', v)
-            #     continue
+                    continue
+                # elif k == 'city':
+                #     setattr(new_profile, 'city_id', v)
+                #     continue
 
-            setattr(new_profile, k, v)
-
-        # new_user.save()
-        # new_profile.user = new_user
+                setattr(new_profile, k, v)
+        except:
+            raise MyException('خطایی رخ داده')
+        new_user.save()
+        new_profile.user = new_user
         new_profile.save()
-        if current_user.has_perm('WF_CUSTOMER_ROLE'):
-            new_profile.to_customer_add(by=current_user, description=input_data.description)
-        elif current_user.has_perm('WF_STUFF_ROLE'):
-            new_profile.to_stuff_add(by=current_user, description=input_data.description)
+        # if current_user.has_perm('WF_CUSTOMER_ROLE'):
+        #     new_profile.to_customer_add(by=current_user, description=input_data.description)
+        # elif current_user.has_perm('WF_STUFF_ROLE'):
+        #     new_profile.to_stuff_add(by=current_user, description=input_data.description)
 
         new_profile.save()
         return CreateProfilePayload(profile=new_profile)
