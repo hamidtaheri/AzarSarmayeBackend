@@ -226,7 +226,8 @@ class TransactionType(DjangoObjectType):
     class Meta:
         model = Transaction
         fields = (
-        'profile', 'effective_date', 'date_time', 'amount', 'percent', 'kind', 'description', 'images', 'expire_date')
+            'profile', 'effective_date', 'date_time', 'amount', 'percent', 'kind', 'description', 'images',
+            'contract_term', 'expire_date')
         filter_fields = {'id': ['exact'], 'profile__id': ['exact'],
                          'effective_date': ['lte', 'gte', 'range'],
                          'kind__id': ['exact'], }

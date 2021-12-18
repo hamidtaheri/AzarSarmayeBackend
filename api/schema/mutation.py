@@ -157,6 +157,7 @@ class CreateTransactionInput(graphene.InputObjectType):
     amount = graphene.Float(required=True, description='مبلغ')
     kind_id = graphene.Int(required=True, description='id نوع تراکنش')
     description = String(description='توضیحات')
+    contract_term = String(required=False, description='مدت قرارداد')
     images = graphene.List(CreateImageInput, required=False, description='پیوست ها')
 
 
@@ -188,10 +189,11 @@ class CreateTransaction(graphene.Mutation):
         #                                 created_by=current_user, date_time=now(), percent=0)
         input_dict = input_data.__dict__
         tr = Transaction.objects.create(input_dict, date_time=now(), percent=0)
-        if current_user.has_perm('WF_CUSTOMER_ROLE'):
-            tr.to_customer_add()
-        if current_user.has_perm('WF_STUFF_ROLE'):
-            tr.to_stuff_add()
+
+        # if current_user.has_perm('WF_CUSTOMER_ROLE'):
+        #     tr.to_customer_add()
+        # if current_user.has_perm('WF_STUFF_ROLE'):
+        #     tr.to_stuff_add()
 
         tr.save()
         if input_data.images:
@@ -391,7 +393,7 @@ class CreateProfile(graphene.Mutation):
             except:  # خطا در ثبت پروفایل
                 new_user.delete()
                 raise MyException('خطایی در ثبت پوفایل رخ داده')
-        except: # خطا در ثبت یوزر
+        except:  # خطا در ثبت یوزر
             raise MyException('خطایی در ثبت یوزر رخ داده')
 
         # if current_user.has_perm('WF_CUSTOMER_ROLE'):
