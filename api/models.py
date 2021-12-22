@@ -515,8 +515,9 @@ class Transaction(models.Model):
     # صرفا برای محاسبه مهر۱۴۰۰ برای اینکه محاسبه سود معرف به شیوه قدیمی محاسبه شود
     DarMelyoon_Moaref = models.IntegerField(blank=True, null=True)
     images = GenericRelation(Image, related_name='transaction_images')
-    contract_term = models.SmallIntegerField(verbose_name='مدت قرارداد', null=True,blank=True)
+    contract_term = models.SmallIntegerField(verbose_name='مدت قرارداد', null=True, blank=True)
     state = FSMField(choices=WorkFlowStates.STATES, protected=True)  # transaction workflow state
+    alias = models.CharField(max_length=200, verbose_name='نام دیگر', null=True, blank=True)
 
     # logging fields
     created = models.DateTimeField(auto_now_add=True, editable=False)

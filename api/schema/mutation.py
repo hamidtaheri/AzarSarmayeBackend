@@ -187,23 +187,28 @@ class CreateTransaction(graphene.Mutation):
         #                                 effective_date=input_data.effective_date,
         #                                 kind_id=input_data.kind_id, description=input_data.description,
         #                                 created_by=current_user, date_time=now(), percent=0)
-        input_dict = input_data.__dict__
-        tr = Transaction.objects.create(input_dict, date_time=now(), percent=0)
 
-        # if current_user.has_perm('WF_CUSTOMER_ROLE'):
-        #     tr.to_customer_add()
-        # if current_user.has_perm('WF_STUFF_ROLE'):
-        #     tr.to_stuff_add()
+        # input_dict = input_data.__dict__
+        # img = input_data.images
+        # # input_dict.__delitem__('images')
+        # tr = Transaction.objects.create(**input_dict, percent=0, date_time=now(), created_by=current_user)  #
+        new_transaction: Transaction = Transaction()
+        for k, v in input_data.items():
+            if k != 'images':
+                setattr(new_transaction, k, v)
 
-        tr.save()
+        new_transaction.date_time = now()
+        new_transaction.created_by = current_user
+        new_transaction.percent = 0
+        new_transaction.save()
         if input_data.images:
+            transaction_type = ContentType.objects.get(app_label='api', model='transaction')
             for img in input_data.images:
-                img_in: CreateImageInput = img
-                new_img = Image.objects.create(object_id=tr.id, content_type_id=7, image=img_in.image,
-                                               description=img_in.description, kind_id=img_in.kind_id)
-                new_img.save()
+                img: CreateImageInput = img
+                Image.objects.create(object_id=new_transaction.id, content_type=transaction_type,
+                                     image=img.image, description=img.description, kind_id=img.kind_id)
 
-        return CreateTransactionPayload(transaction=tr)
+        return CreateTransactionPayload(transaction=new_transaction)
 
 
 class UpdateTransactionInput(graphene.InputObjectType):
@@ -232,7 +237,7 @@ class UpdateTransaction(graphene.Mutation):
     def mutate(self, info, input_data: UpdateTransactionInput):
         current_user: User = info.context.user
         profile = Profile.objects.get(id=input_data.profile_id)
-        if not current_user.has_perm('add_transaction_for_all'):  # کاربر دسترسی ندارد
+        if not current_user.has_perm('api.add_transaction_for_all'):  # کاربر دسترسی ندارد
             #  فیلتر بر اساس کاربر جاری
             if profile.user != current_user:
                 raise MyException(HAVE_NOT_PERMISSION)
@@ -351,7 +356,6 @@ class CreateProfile(graphene.Mutation):
     @permission_required("api.can_add_profile")
     def mutate(self, info, input_data: CreateProfileInput):
         current_user: User = info.context.user
-        new_profile_id = Profile.objects.creation_counter
         new_profile: Profile = Profile()
 
         # حلقه برای ست کردن مقادیر به جز مقادیر خاص که لازم است کنترل شوند
@@ -373,12 +377,6 @@ class CreateProfile(graphene.Mutation):
                 except Profile.DoesNotExist:
                     raise MyException('معرف پیدا نشد')
             elif k == 'images':
-                for img in input_data.images:
-                    new_img = Image.objects.create(object_id=new_profile_id, content_type_id=4)
-                    for ki, vi in img.items():
-                        setattr(new_img, ki, vi)
-                    new_img.save()
-
                 continue
             # elif k == 'city':
             #     setattr(new_profile, 'city_id', v)
@@ -395,6 +393,13 @@ class CreateProfile(graphene.Mutation):
                 raise MyException('خطایی در ثبت پوفایل رخ داده')
         except:  # خطا در ثبت یوزر
             raise MyException('خطایی در ثبت یوزر رخ داده')
+
+        if input_data.images:
+            profile_type = ContentType.objects.get(app_label='api', model='profile')
+            for img in input_data.images:
+                img: CreateImageInput = img
+                Image.objects.create(object_id=new_profile.id, content_type=profile_type,
+                                     image=img.image, description=img.description, kind_id=img.kind_id)
 
         # if current_user.has_perm('WF_CUSTOMER_ROLE'):
         #     new_profile.to_customer_add(by=current_user, description=input_data.description)

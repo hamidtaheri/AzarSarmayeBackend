@@ -227,7 +227,7 @@ class TransactionType(DjangoObjectType):
         model = Transaction
         fields = (
             'profile', 'effective_date', 'date_time', 'amount', 'percent', 'kind', 'description', 'images',
-            'contract_term', 'expire_date')
+            'contract_term', 'expire_date', 'alias')
         filter_fields = {'id': ['exact'], 'profile__id': ['exact'],
                          'effective_date': ['lte', 'gte', 'range'],
                          'kind__id': ['exact'], }
@@ -403,7 +403,7 @@ class Query(graphene.ObjectType):
         #     raise Exception(HAVE_NOT_PERMISSION)
         transactions = Transaction.objects.all()
 
-        if not current_user.has_perm('view_all_transactions'):  # کاربر دسترسی ندارد
+        if not current_user.has_perm('api.view_all_transactions'):  # کاربر دسترسی ندارد
             #  فیلتر بر اساس کاربر جاری
             transactions = transactions.filter(profile__user=current_user)
 
