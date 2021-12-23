@@ -1,6 +1,5 @@
 import graphene
 from django.contrib.auth.models import Group, Permission
-from django_fsm import get_available_FIELD_transitions
 from django_fsm_log.models import StateLog
 from graphene import relay, Enum, Int, Date, ObjectType
 from graphene_django import DjangoObjectType
@@ -33,17 +32,30 @@ class PostType(DjangoObjectType):
         interfaces = (relay.Node,)
 
 
+class PermissionType(DjangoObjectType):
+    class Meta:
+        model = Permission
+        fields = ['name', 'content_type', 'codename']
+        filter_fields = {'id': ['exact'], 'name': ['icontains']}
+
+
 class UserType(DjangoObjectType):
     """
     اطلاعات کاربر جاری
     """
+    all_permissions = graphene.List(of_type=graphene.String)
 
     class Meta:
         model = User
         fields = (
             'id', 'first_name', 'last_name',
-            'username', 'profile', 'last_login', 'user_permissions',)
+            'username', 'profile', 'last_login', 'user_permissions', 'all_permissions',)
         # groups
+
+    @staticmethod
+    def resolve_all_permissions(self, info):
+        user: User = self
+        return user.get_all_permissions()
 
 
 class Transaction_Type_Enum(Enum):
@@ -80,6 +92,49 @@ class ImageType(DjangoObjectType):
         fields = ['id', 'description', 'kind', 'image', ]
 
 
+class TransitionType(ObjectType):
+    name = graphene.String()
+    source = graphene.String()
+    target = graphene.String()
+    permission = graphene.String()
+
+
+def all_workflow_transitions(instance):
+    tr: list[TransitionType] = list[TransitionType]()
+    for i in list(instance.get_all_state_transitions()):
+        t: TransitionType = TransitionType()
+        t.name = i.name
+        t.target = i.target
+        t.source = i.source
+        t.permission = i.permission
+        tr.append(t)
+    return tr
+
+
+def available_workflow_transitions(instance):
+    tr: list[TransitionType] = list[TransitionType]()
+    for i in list(instance.get_available_state_transitions()):
+        t: TransitionType = TransitionType()
+        t.name = i.name
+        t.target = i.target
+        t.source = i.source
+        t.permission = i.permission
+        tr.append(t)
+    return tr
+
+
+def available_user_workflow_transitions(instance, user):
+    tr: list[TransitionType] = list[TransitionType]()
+    for i in list(instance.get_available_user_state_transitions(user=user)):
+        t: TransitionType = TransitionType()
+        t.name = i.name
+        t.target = i.target
+        t.source = i.source
+        t.permission = i.permission
+        tr.append(t)
+    return tr
+
+
 class ProfileType(DjangoObjectType):
     id = graphene.ID(source='pk', required=True)
     seporde = graphene.Float(source='seporde')  # اتصال به @property
@@ -100,6 +155,10 @@ class ProfileType(DjangoObjectType):
         ta_date=Date(required=True, description='تا تاریخ'),
     )
     workflow_transition = graphene.List(of_type=graphene.String, description='مرحله بعدی در گردش کار')
+    all_workflow_transitions = graphene.List(of_type=TransitionType, description='تمامی گردش کارهای پروفایل')
+    available_workflow_transitions = graphene.List(of_type=TransitionType, description='گردش کارهای مجاز در این مرحله')
+    available_user_workflow_transitions = graphene.List(of_type=TransitionType,
+                                                        description='گردش کارهای مجاز در این مرحله و توسط کاربر جاری')
     province_id = graphene.Int(required=False)
 
     class Meta:
@@ -177,6 +236,16 @@ class ProfileType(DjangoObjectType):
         avail_user_trans_list = list(avail_user_trans)
         attr = (o.name for o in avail_user_trans_list)
         return attr
+
+    def resolve_all_workflow_transitions(self, info):
+        return all_workflow_transitions(self)
+
+    def resolve_available_workflow_transitions(self, info):
+        return available_workflow_transitions(self)
+
+    def resolve_available_user_workflow_transitions(self, info):
+        current_user: User = info.context.user
+        return available_user_workflow_transitions(self, current_user)
 
     def resolve_province_id(self, info):
         p: Profile = self
@@ -257,13 +326,6 @@ class TransactionKindType(DjangoObjectType):
         fields = ['id', 'title']
         # exclude = ('id',)
         filter_fields = {'id': ['exact']}
-
-
-class PermissionType(DjangoObjectType):
-    class Meta:
-        model = Permission
-        fields = ['name', 'content_type', 'codename']
-        filter_fields = {'id': ['exact'], 'name': ['icontains']}
 
 
 class GroupType(DjangoObjectType):
@@ -462,7 +524,7 @@ class Query(graphene.ObjectType):
     def resolve_mohasebe_sod_all_export_excel(root, info, az_date, ta_date):
         return views.mohasebe_sod_all_export_excel(az_date=az_date, ta_date=ta_date)
 
-    @staff_member_required
+    # @staff_member_required
     def resolve_permissions(self, info, **kwargs):
         permissions = Permission.objects.all()
         return permissions
