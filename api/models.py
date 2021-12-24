@@ -195,7 +195,7 @@ class WorkFlowStates(models.Model):
     """
     START = 'start'  # start
     CONVERTED = 'converted'  # اطلاعات کانورت شده
-    STUFF_ADDED = 'staff_added'  # وارد شده توسط کارمند
+    STUFF_ADDED = 'stuff_added'  # وارد شده توسط کارمند
     CUSTOMER_ADDED = 'customer_added'  # وارد شده توسط مشتری
     STUFF_CHECKED = 'stuff_checked'  # بررسی شده توسط کارمند
     STUFF_CONFIRMED = 'stuff_confirmed'  # تایید شده توسط کارمند
@@ -442,6 +442,7 @@ class Profile(models.Model):
     @fsm_log_description
     @transition(field=state, source="converted", target="stuff_added", permission='api.WF_STUFF_ROLE')
     def converted_to_stuff_add(self, by=None, description=None):
+        # print(f'converted_to_stuff_add by {by}')
         pass
 
     @fsm_log_by

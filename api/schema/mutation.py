@@ -562,9 +562,10 @@ class ProfileWorkFlowTransition(graphene.Mutation):
     class Arguments:
         id = graphene.Int(required=True)
         transition = graphene.String(required=True, description='transition')
+        description = graphene.String(required=False, description='description')
 
     # @permission_required('WF_STUFF_ROLE')
-    def mutate(self, info, id, transition):
+    def mutate(self, info, id, transition, description):
         errors = []
         current_user: User = info.context.user
 
@@ -572,7 +573,7 @@ class ProfileWorkFlowTransition(graphene.Mutation):
         avail_user_trans = list(profile.get_available_user_state_transitions(user=current_user))
         attr = list(o.name for o in avail_user_trans)
         if transition in attr:
-            getattr(profile, transition)()
+            getattr(profile, transition)(by=current_user, description=description)
             profile.save()
         else:
             errors.append('Error')
