@@ -249,7 +249,11 @@ class ProfileType(DjangoObjectType):
 
     def resolve_province_id(self, info):
         p: Profile = self
-        return p.city.province.id
+        try:
+            province_id = p.city.province.id
+            return province_id
+        except:
+            return 0
 
     @classmethod
     def get_queryset(cls, queryset, info):
@@ -343,18 +347,38 @@ class GroupType(DjangoObjectType):
 
 class CityType(DjangoObjectType):
     id = graphene.ID(source='pk', required=True)
+    province_id = graphene.Int()
 
     class Meta:
         model = City
-        fields = ('name', 'id')
+        fields = ('name', 'id',)
         filter_fields = {'province__id': ['exact'], 'name': ['icontains', 'istartswith']}
         interfaces = (relay.Node,)
+
+    @staticmethod
+    def resolve_province_id(self, info):
+        city: City = self
+        return city.province.id
 
 
 class ProvinceType(DjangoObjectType):
     class Meta:
         model = Province
         fields = ['name', 'id', 'cites', ]
+
+
+class ImageKindType(DjangoObjectType):
+    class Meta:
+        model = ImageKind
+        fields = ['name', 'description', ]
+
+
+class BankType(DjangoObjectType):
+    id = graphene.ID(source='pk', required=True)
+
+    class Meta:
+        model = Bank
+        fields = ['name', 'description', ]
 
 
 # class WorkflowSatesType:
@@ -368,7 +392,7 @@ def allowed_workflow_sates(user: User) -> list:
     if user.has_perm('api.CONVERTED_WF_STATE'):
         workflow_sates.append('converted')
     if user.has_perm('api.STUFF_ADDED_WF_STATE'):
-        workflow_sates.append('staff_added')
+        workflow_sates.append('stuff_added')
     if user.has_perm('api.CUSTOMER_ADDED_WF_STATE'):
         workflow_sates.append('customer_added')
     if user.has_perm('api.STUFF_CHECKED_WF_STATE'):
@@ -421,6 +445,8 @@ class Query(graphene.ObjectType):
     groups = graphene.List(GroupType, description='گروه های دسترسی')
     provinces = graphene.List(ProvinceType)
     cities = DjangoFilterConnectionField(CityType)
+    image_kind = graphene.List(ImageKindType)
+    bank = graphene.List(BankType)
 
     #################
 
@@ -539,3 +565,9 @@ class Query(graphene.ObjectType):
 
     def resolve_cities(root, info, **kwargs):
         return City.objects.all()
+
+    def resolve_image_kind(root, info):
+        return ImageKind.objects.all()
+
+    def resolve_bank(root, info):
+        return Bank.objects.all()

@@ -179,7 +179,7 @@ class CreateTransaction(graphene.Mutation):
     def mutate(self, info, input_data: CreateTransactionInput):
         current_user: User = info.context.user
         profile = Profile.objects.get(id=input_data.profile_id)
-        if not current_user.has_perm('add_transaction_for_all'):  # کاربر دسترسی ندارد
+        if not current_user.has_perm('api.add_transaction_for_all'):  # کاربر دسترسی ندارد
             #  فیلتر بر اساس کاربر جاری
             if current_user != profile.user:
                 raise MyException('عدم دسترسی')
@@ -333,7 +333,7 @@ class CreateProfileInput(graphene.InputObjectType):
     mobile1 = String()
     mobile2 = String()
     email = String()
-    images = graphene.List(CreateImageInput)
+    images = graphene.List(CreateImageInput, required=False, )
     description = String()
 
     # file = Upload(required=True)
@@ -401,9 +401,9 @@ class CreateProfile(graphene.Mutation):
                 Image.objects.create(object_id=new_profile.id, content_type=profile_type,
                                      image=img.image, description=img.description, kind_id=img.kind_id)
 
-        # if current_user.has_perm('WF_CUSTOMER_ROLE'):
+        # if current_user.has_perm('api.WF_CUSTOMER_ROLE'):
         #     new_profile.to_customer_add(by=current_user, description=input_data.description)
-        # elif current_user.has_perm('WF_STUFF_ROLE'):
+        # elif current_user.has_perm('api.WF_STUFF_ROLE'):
         #     new_profile.to_stuff_add(by=current_user, description=input_data.description)
 
         return CreateProfilePayload(profile=new_profile)
@@ -432,7 +432,7 @@ class UpdateProfile(graphene.Mutation):
     @login_required
     def mutate(self, info, input_data: UpdateProfileInput):
         current_user: User = info.context.user
-        if not current_user.has_perm('can_edit_profile_for_all'):  # کاربر دسترسی ندارد
+        if not current_user.has_perm('api.can_edit_profile_for_all'):  # کاربر دسترسی ندارد
             #  فیلتر بر اساس کاربر جاری
             new_profile = Profile.objects.get(user=current_user)
         else:
@@ -472,7 +472,7 @@ class UpdateProfile(graphene.Mutation):
             setattr(new_profile, k, v)
 
         # new_user.save()
-        if new_profile.state == "START" and current_user.has_perm("WF_STUFF_ROLE"):
+        if new_profile.state == "START" and current_user.has_perm("api.WF_STUFF_ROLE"):
             new_profile.to_stuff_add(by=current_user)
         new_profile.save()
         return UpdateProfilePayload(profile=new_profile)
@@ -568,6 +568,14 @@ class ProfileWorkFlowTransition(graphene.Mutation):
     def mutate(self, info, id, transition, description):
         errors = []
         current_user: User = info.context.user
+        profile: Profile = Profile.objects.get(id=id)
+
+        if not current_user.has_perm("api.can_change_wf_state_for_all"):
+            # عدم دسترسی به تغییر مرحله گردش کار برای دیگران
+            if profile != current_user.profile:
+                # errors.append("perm: (api.can_change_wf_state_for_all)  - عدم دسترسی برای تغییر گردش کار دیگران")
+                # return ProfileWorkFlowTransition(ok=False, errors=errors)
+                raise Exception("perm: (api.can_change_wf_state_for_all)  - عدم دسترسی برای تغییر گردش کار دیگران")
 
         profile: Profile = Profile.objects.get(id=id)
         avail_user_trans = list(profile.get_available_user_state_transitions(user=current_user))

@@ -251,7 +251,7 @@ class City(models.Model):
 
 
 def customer_reject_permision(instance, user):
-    if user.has_perm('api.WF_CUSTOMER_ROLE'):
+    if user.has_perm('api.WF_TRANSITION_PROFILE_STUFF_ADDED_TO_STUFF_ADDED'):
         return True
     else:
         return False
@@ -316,6 +316,7 @@ class Profile(models.Model):
             ("can_edit_profile_for_self", "ویرایش پروفایل خودش"),
             ("can_edit_profile_for_all", "ویرایش پروفایل دیگران"),
             ("can_delete_profile_for_all", "حذف پروفایل"),
+            ("can_change_wf_state_for_all", "میتواند مرحله گردش کار پروفایل را برای دیگران تغییر دهد"),
             # ("", "")  #
             ("WF_TRANSITION_PROFILE_START_TO_CONVERTED", "  گردش کار پروفایل از شروع به کانورت شده"),
             ("WF_TRANSITION_PROFILE_START_TO_STUFF_ADDED", "گردش کار پروفایل از شروع به افزوده شده توسط کارمند"),  #
@@ -447,7 +448,8 @@ class Profile(models.Model):
 
     @fsm_log_by
     @fsm_log_description
-    @transition(field=state, source="start", target="customer_added")
+    @transition(field=state, source="start", target="customer_added",
+                permission='api.WF_TRANSITION_PROFILE_START_TO_CUSTOMER_ADDED')
     def to_customer_add(self, by=None, description=None):
         pass
 
@@ -458,7 +460,8 @@ class Profile(models.Model):
 
     @fsm_log_by
     @fsm_log_description
-    @transition(field=state, source="stuff_added", target="customer_confirmed", permission='api.WF_CUSTOMER_ROLE')
+    @transition(field=state, source="stuff_added", target="customer_confirmed",
+                permission='api.WF_TRANSITION_PROFILE_STUFF_ADDED_TO_COSTUMER_CONFIRMED')
     def to_customer_confirm(self, by=None, description=None):
         pass
 
@@ -497,6 +500,26 @@ class ProfileImageGallery(models.Model):
                                 blank=True)
 
 
+class PelekanKind(models.Model):
+    title = models.CharField(max_length=200)
+    start_date = models.DateField(null=True, blank=True)
+    description = models.TextField(null=True, blank=True)
+
+    def __str__(self):
+        return self.title
+
+
+class Pelekan(models.Model):
+    az = models.PositiveBigIntegerField()
+    ta = models.PositiveBigIntegerField()
+    percent = models.IntegerField()
+    kind = models.ForeignKey(PelekanKind, null=True, blank=True, on_delete=models.DO_NOTHING, related_name='kinds')
+    description = models.TextField(null=True, blank=True)
+
+    def __str__(self):
+        return f'{self.kind.title}: {self.az} --- {self.ta}  :  {self.percent}'
+
+
 class Transaction(models.Model):
     profile = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name='transactions')
     tarikh = models.CharField(max_length=10)
@@ -509,6 +532,7 @@ class Transaction(models.Model):
     date_time = models.DateTimeField()
     amount = models.BigIntegerField()
     kind = models.ForeignKey(TransactionKind, on_delete=models.CASCADE, related_name='transactions')
+    plan = models.ForeignKey(to=PelekanKind, on_delete=models.SET_NULL, null=True, blank=True)
     NahveyePardakht = models.CharField(max_length=40, blank=True, null=True)
     description = models.TextField(blank=True, null=True)
     Tbl_Pardakht_List_id = models.IntegerField(blank=True, null=True)
@@ -731,26 +755,6 @@ class ProfitCalculate(models.Model):
         return f'for:({self.transaction}) from:({self.date_from} = {m2sh(self.date_from)}) ' \
                f'to:({self.date_to} = {m2sh(self.date_to)}) days: ({self.days}) ' \
                f'amount: ({self.amount})  percent: ({self.percent}) final: ({self.calculated_amount})'
-
-
-class PelekanKind(models.Model):
-    title = models.CharField(max_length=200)
-    start_date = models.DateField(null=True, blank=True)
-    description = models.TextField(null=True, blank=True)
-
-    def __str__(self):
-        return self.title
-
-
-class Pelekan(models.Model):
-    az = models.PositiveBigIntegerField()
-    ta = models.PositiveBigIntegerField()
-    percent = models.IntegerField()
-    kind = models.ForeignKey(PelekanKind, null=True, blank=True, on_delete=models.DO_NOTHING, related_name='kinds')
-    description = models.TextField(null=True, blank=True)
-
-    def __str__(self):
-        return f'{self.kind.title}: {self.az} --- {self.ta}  :  {self.percent}'
 
 
 class Post(models.Model):
