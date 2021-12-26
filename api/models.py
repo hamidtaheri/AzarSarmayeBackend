@@ -551,7 +551,7 @@ class Transaction(models.Model):
     alias = models.CharField(max_length=200, verbose_name='نام دیگر', null=True, blank=True)
 
     # logging fields
-    created = models.DateTimeField(auto_now_add=True, editable=False)
+    created = models.DateTimeField(auto_now_add=True, editable=False,blank=True,null=True)
     created_by = models.ForeignKey(get_user_model(), on_delete=models.DO_NOTHING, blank=False, null=False,
                                    related_name='transactions_create_by', editable=False)
     modified = models.DateTimeField(auto_now=True, editable=False)
