@@ -311,12 +311,13 @@ class Profile(models.Model):
         verbose_name_plural = "پروفایل"
 
         permissions = (
-            ("can_add_profile", "ایجاد پروفایل"),
+            ("can_add_profile_for_self", "ایجاد پروفایل برای خودش"),
+            ("can_add_profile_for_all", "ایجاد پروفایل برای دیگران"),
             ("view_all_profiles", " مشاهده همه پروفایل ها"),
             ("can_edit_profile_for_self", "ویرایش پروفایل خودش"),
             ("can_edit_profile_for_all", "ویرایش پروفایل دیگران"),
             ("can_delete_profile_for_all", "حذف پروفایل"),
-            ("can_change_wf_state_for_all", "میتواند مرحله گردش کار پروفایل را برای دیگران تغییر دهد"),
+            ("can_change_profile_wf_state_for_all", "میتواند مرحله گردش کار پروفایل را برای دیگران تغییر دهد"),
             # ("", "")  #
             ("WF_TRANSITION_PROFILE_START_TO_CONVERTED", "  گردش کار پروفایل از شروع به کانورت شده"),
             ("WF_TRANSITION_PROFILE_START_TO_STUFF_ADDED", "گردش کار پروفایل از شروع به افزوده شده توسط کارمند"),  #
@@ -328,7 +329,7 @@ class Profile(models.Model):
             ("WF_TRANSITION_PROFILE_STUFF_ADDED_TO_COSTUMER_CONFIRMED",
              "گردش کار پروفایل از افزوده شده توسط کارمند به تایید شده توسط مشتری"),  #
             ("WF_TRANSITION_PROFILE_COSTUMER_ADDED_TO_COSTUMER_ADDED",
-             "گردش کار پروفایل افزوده شده توسط مشتری به افزوده شده توسط مشتری(عدم تایید توسط کارمند)"),  #
+             "گردش کار پروفایل از افزوده شده توسط مشتری به افزوده شده توسط مشتری(عدم تایید توسط کارمند)"),  #
             ("WF_TRANSITION_PROFILE_COSTUMER_ADDED_TO_STUFF_CONFIRMED",
              "گردش کار پروفایل از افزوده شده توسط مشتری به تایید توسط کارمند"),  #
         )
@@ -435,15 +436,16 @@ class Profile(models.Model):
 
     @fsm_log_by
     @fsm_log_description
-    @transition(field=state, source="start", target="stuff_added")
+    @transition(field=state, source="start", target="stuff_added",
+                permission='api.WF_TRANSITION_PROFILE_START_TO_STUFF_ADDED', custom={"des": "startTOstuffAdded"})
     def to_stuff_add(self, by=None, description=None):
         pass
 
     @fsm_log_by
     @fsm_log_description
-    @transition(field=state, source="converted", target="stuff_added", permission='api.WF_STUFF_ROLE')
+    @transition(field=state, source="converted", target="stuff_added",
+                permission='api.WF_TRANSITION_PROFILE_CONVERTED_TO_STUFF_ADDED')
     def converted_to_stuff_add(self, by=None, description=None):
-        # print(f'converted_to_stuff_add by {by}')
         pass
 
     @fsm_log_by
@@ -474,13 +476,15 @@ class Profile(models.Model):
 
     @fsm_log_by
     @fsm_log_description
-    @transition(field=state, source="customer_added", target="stuff_confirmed")
+    @transition(field=state, source="customer_added", target="stuff_confirmed",
+                permission='api.WF_TRANSITION_PROFILE_COSTUMER_ADDED_TO_STUFF_CONFIRMED')
     def to_stuff_confirm(self, by=None, description=None):
         pass
 
     @fsm_log_by
     @fsm_log_description
-    @transition(field=state, source="customer_added", target="customer_added")
+    @transition(field=state, source="customer_added", target="customer_added",
+                permission='api.WF_TRANSITION_PROFILE_COSTUMER_ADDED_TO_COSTUMER_ADDED')
     def stuff_reject(self, by=None, description=None):
         pass
 
@@ -558,57 +562,76 @@ class Transaction(models.Model):
     class Meta:
         ordering = ['effective_date']
         permissions = (
-            ("view_all_transactions", "مشاهده همه تراکنش ها "),
-            ("add_transaction_for_all", "میتواند برای دیگران تراکنش ثبت کند"),
-
+            ("view_all_transactions", "مشاهده همه تراکنش ها"),
+            ("add_transaction_for_all", "ایجاد تراکنش برای دیگران"),
+            ("can_change_transaction_wf_state_for_all", "میتواند مرحله گردش کار تراکنش را برای دیگران تغییر دهد"),
+            # ("", ""),  #
+            # ("WF_TRANSITION_TRANSACTION_", "گردش کار تراکنش از "),
+            ("WF_TRANSITION_TRANSACTION_START_TO_CONVERTED", "گردش کار تراکنش از شروع به به کانورت شده"),
+            ("WF_TRANSITION_TRANSACTION_START_TO_STUFF_ADDED", "گردش کار تراکنش از شروع به افزوده شده توسط کارمند"),
+            ("WF_TRANSITION_TRANSACTION_START_TO_CUSTOMER_ADDED", "گردش کار تراکنش از شروع به افزوده شده توسط مشتری"),
+            ("WF_TRANSITION_TRANSACTION_CONVERTED_TO_STUFF_ADDED",
+             "گردش کار تراکنش از کانورت شده به افزوده شده توسط کارمند"),
+            ("WF_TRANSITION_TRANSACTION_STUFF_ADDED_TO_STUFF_ADDED",
+             "گردش کار تراکنش از افزوده شده توسط کارمند به افزوده شده توسط کارمند (عدم تایید توسط مشتری)"),
+            ("WF_TRANSITION_TRANSACTION_STUFF_ADDED_TO_COSTUMER_CONFIRMED",
+             "گردش کار تراکنش از افزوده شده توسط کارمند به تایید شده توسط مشتری"),
+            ("WF_TRANSITION_TRANSACTION_COSTUMER_ADDED_TO_COSTUMER_ADDED",
+             "گردش کار تراکنش از افزوده شده توسط مشتری به افزوده شده توسط مشتری(عدم تایید توسط کارمند)"),
+            ("WF_TRANSITION_TRANSACTION_COSTUMER_ADDED_TO_STUFF_CONFIRMED",
+             "گردش کار تراکنش از افزوده شده توسط مشتری به تایید توسط کارمند"),
+            ("WF_TRANSITION_TRANSACTION_COSTUMER_CONFIRMED_TO_BOSS_CONFIRMED",
+             "گردش کار تراکنش از تایید شده توسط مشتری به تایید شده توسط مدیر"),
+            ("WF_TRANSITION_TRANSACTION_STUFF_CONFIRMED_TO_BOSS_CONFIRMED",
+             "گردش کار تراکنش از تایید شده توسط کارمند به تایید شده توسط مدیر"),
         )
 
     @transition(field=state, source="start", target="converted")
     def to_convert(self):
-        """
-        This method will contain the action that needs to be taken once the
-        state is changed. Such as notifying Users.
-        """
         pass
 
-    @transition(field=state, source="start", target="stuff_added")
+    @transition(field=state, source="start", target="stuff_added",
+                permission='api.WF_TRANSITION_TRANSACTION_START_TO_STUFF_ADDED')
     def to_stuff_add(self):
         pass
 
-    @transition(field=state, source="converted", target="stuff_added")
+    @transition(field=state, source="converted", target="stuff_added",
+                permission='api.WF_TRANSITION_TRANSACTION_CONVERTED_TO_STUFF_ADDED')
     def converted_to_stuff_add(self):
         pass
 
-    @transition(field=state, source="start", target="customer_added")
+    @transition(field=state, source="start", target="customer_added",
+                permission='api.WF_TRANSITION_TRANSACTION_START_TO_CUSTOMER_ADDED')
     def to_customer_add(self):
         pass
 
-    # @transition(field=state, source="CONVERTED", target="STUFF_CHECKED")
-    # def to_stuff_check(self):
-    #     print('after stuff checked')
-    #     pass
-
-    @transition(field=state, source="stuff_added", target="customer_confirmed")
+    @transition(field=state, source="stuff_added", target="customer_confirmed",
+                permission='api.WF_TRANSITION_TRANSACTION_STUFF_ADDED_TO_COSTUMER_CONFIRMED')
     def to_customer_confirm(self):
         pass
 
-    @transition(field=state, source="stuff_added", target="stuff_added")
+    @transition(field=state, source="stuff_added", target="stuff_added",
+                permission='api.WF_TRANSITION_TRANSACTION_STUFF_ADDED_TO_STUFF_ADDED')
     def customer_reject(self):
         pass
 
-    @transition(field=state, source="customer_added", target="stuff_confirmed")
+    @transition(field=state, source="customer_added", target="stuff_confirmed",
+                permission='api.WF_TRANSITION_TRANSACTION_COSTUMER_ADDED_TO_STUFF_CONFIRMED')
     def to_stuff_confirm(self):
         pass
 
-    @transition(field=state, source="customer_added", target="customer_added")
+    @transition(field=state, source="customer_added", target="customer_added",
+                permission='api.WF_TRANSITION_TRANSACTION_COSTUMER_ADDED_TO_COSTUMER_ADDED')
     def stuff_reject(self):
         pass
 
-    @transition(field=state, source="customer_confirmed", target="boss_confirmed")
+    @transition(field=state, source="customer_confirmed", target="boss_confirmed",
+                permission='api.WF_TRANSITION_TRANSACTION_COSTUMER_CONFIRMED_TO_BOSS_CONFIRMED')
     def customer_confirm_to_boss_confirm(self):
         pass
 
-    @transition(field=state, source="stuff_confirmed", target="boss_confirmed")
+    @transition(field=state, source="stuff_confirmed", target="boss_confirmed",
+                permission='api.WF_TRANSITION_TRANSACTION_STUFF_CONFIRMED_TO_BOSS_CONFIRMED')
     def to_boss_confirm(self):
         pass
 

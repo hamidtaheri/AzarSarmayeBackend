@@ -182,7 +182,7 @@ class CreateTransaction(graphene.Mutation):
         if not current_user.has_perm('api.add_transaction_for_all'):  # کاربر دسترسی ندارد
             #  فیلتر بر اساس کاربر جاری
             if current_user != profile.user:
-                raise MyException('عدم دسترسی')
+                raise Exception('عدم دسترسی, دسترسی لازم: (ایجاد تراکنش برای دیگران)add_transaction_for_all ')
         # tr = Transaction.objects.create(profile=profile, amount=input_data.amount,
         #                                 effective_date=input_data.effective_date,
         #                                 kind_id=input_data.kind_id, description=input_data.description,
@@ -208,6 +208,12 @@ class CreateTransaction(graphene.Mutation):
                 Image.objects.create(object_id=new_transaction.id, content_type=transaction_type,
                                      image=img.image, description=img.description, kind_id=img.kind_id)
 
+        if current_user.has_perm('api.WF_TRANSITION_TRANSACTION_START_TO_STUFF_ADDED'):
+            new_transaction.to_stuff_add(by=current_user, description=input_data.description)
+        elif current_user.has_perm('api.WF_TRANSITION_TRANSACTION_START_TO_CUSTOMER_ADDED'):
+            new_transaction.to_customer_add(by=current_user, description=input_data.description)
+
+        new_transaction.save()
         return CreateTransactionPayload(transaction=new_transaction)
 
 
@@ -291,26 +297,32 @@ class UserInput(graphene.InputObjectType):
 
 class CreateUser(graphene.Mutation):
     user = graphene.Field(UserType)
+    token = graphene.String()
 
     class Arguments:
         input = UserInput(required=True)
 
-    @permission_required("can-add_user")
     def mutate(self, info, input):
-        current_user: User = info.context.user
-        # if not current_user.has_perm(""):
-        #     raise Exception(HAVE_NOT_PERMISSION)
-        new_user: User = User(username=input.username, email=input.email)
-        new_user.set_password(input.password)
-        new_user.save()
+        try:
+            new_user: User = User(username=input.username, email=input.email)
+            new_user.set_password(input.password)
+            new_user.save()
+            new_user.last_login = timezone.now()
+            new_user.save(update_fields=['last_login'])
+            token = get_token(new_user)
+            customer_group_name = 'customer_group'
+            customer_group: Group = Group.objects.get(name=customer_group_name)
+            customer_group.user_set.add(new_user)
+        except IntegrityError as e:
+            raise MyException('نام کاربری تکراری است')
 
-        return CreateUser(user=new_user)
+        return CreateUser(user=new_user, token=token)
 
 
 class CreateProfileInput(graphene.InputObjectType):
     # id = graphene.ID()
-    # user_id = Int(required=False, description='کاربر متناظر')
-    user = UserInput(required=True).Field()
+    user_id = Int(required=False, description='کاربر متناظر')
+    # user = UserInput(required=True).Field()
     first_name = String()
     last_name = String()
     father_name = String()
@@ -357,20 +369,13 @@ class CreateProfile(graphene.Mutation):
     def mutate(self, info, input_data: CreateProfileInput):
         current_user: User = info.context.user
         new_profile: Profile = Profile()
-
+        if (not current_user.has_perm('api.can_add_profile_for_all')) and input_data.user_id != current_user.id:
+            # درخواست کاربر برای ایجاد پروفایل برای دیگری در حالی که دسترسی این کار راندارد
+            raise Exception('عدم دسترسی, دسترسی لازم: (ایجاد پروفایل برای دیگران)can_add_profile_for_all ')
         # حلقه برای ست کردن مقادیر به جز مقادیر خاص که لازم است کنترل شوند
 
         for k, v in input_data.items():
-            if k == 'user':
-                try:
-                    new_user: User = User(username=input_data.user.username)
-                    new_user.set_password(raw_password=input_data.user.password)
-                    # new_user.save()
-                    # new_profile.user = new_user
-                except IntegrityError as e:
-                    raise MyException('نام کاربری تکراری است')
-                continue
-            elif k == 'presenter_id':
+            if k == 'presenter_id':
                 try:
                     presenter: Profile = Profile.objects.get(id=input_data.presenter_id)
                     # new_profile.presenter = presenter
@@ -383,16 +388,11 @@ class CreateProfile(graphene.Mutation):
             #     continue
 
             setattr(new_profile, k, v)
+
         try:
-            new_user.save()
-            new_profile.user = new_user
-            try:
-                new_profile.save()
-            except:  # خطا در ثبت پروفایل
-                new_user.delete()
-                raise MyException('خطایی در ثبت پوفایل رخ داده')
-        except:  # خطا در ثبت یوزر
-            raise MyException('خطایی در ثبت یوزر رخ داده')
+            new_profile.save()
+        except:  # خطا در ثبت پروفایل
+            raise MyException('خطایی در ثبت پروفایل رخ داده')
 
         if input_data.images:
             profile_type = ContentType.objects.get(app_label='api', model='profile')
@@ -401,10 +401,12 @@ class CreateProfile(graphene.Mutation):
                 Image.objects.create(object_id=new_profile.id, content_type=profile_type,
                                      image=img.image, description=img.description, kind_id=img.kind_id)
 
-        # if current_user.has_perm('api.WF_CUSTOMER_ROLE'):
-        #     new_profile.to_customer_add(by=current_user, description=input_data.description)
-        # elif current_user.has_perm('api.WF_STUFF_ROLE'):
-        #     new_profile.to_stuff_add(by=current_user, description=input_data.description)
+        if current_user.has_perm('api.WF_TRANSITION_PROFILE_START_TO_STUFF_ADDED'):
+            new_profile.to_stuff_add(by=current_user, description=input_data.description)
+        elif current_user.has_perm('api.WF_TRANSITION_PROFILE_START_TO_CUSTOMER_ADDED'):
+            new_profile.to_customer_add(by=current_user, description=input_data.description)
+
+        new_profile.save()
 
         return CreateProfilePayload(profile=new_profile)
 
@@ -570,26 +572,63 @@ class ProfileWorkFlowTransition(graphene.Mutation):
         current_user: User = info.context.user
         profile: Profile = Profile.objects.get(id=id)
 
-        if not current_user.has_perm("api.can_change_wf_state_for_all"):
+        if not current_user.has_perm("api.can_change_profile_wf_state_for_all"):
             # عدم دسترسی به تغییر مرحله گردش کار برای دیگران
             if profile != current_user.profile:
                 # errors.append("perm: (api.can_change_wf_state_for_all)  - عدم دسترسی برای تغییر گردش کار دیگران")
                 # return ProfileWorkFlowTransition(ok=False, errors=errors)
-                raise Exception("perm: (api.can_change_wf_state_for_all)  - عدم دسترسی برای تغییر گردش کار دیگران")
+                raise Exception(
+                    "perm: (api.can_change_profile_wf_state_for_all)  - عدم دسترسی برای تغییر گردش کار پروفایل دیگران")
 
-        profile: Profile = Profile.objects.get(id=id)
         avail_user_trans = list(profile.get_available_user_state_transitions(user=current_user))
         attr = list(o.name for o in avail_user_trans)
         if transition in attr:
             getattr(profile, transition)(by=current_user, description=description)
             profile.save()
         else:
-            errors.append('Error')
+            errors.append('transition ثrror')
 
         if errors:
             return ProfileWorkFlowTransition(ok=False, errors=errors)
         else:
             return ProfileWorkFlowTransition(ok=True, errors=errors)
+
+
+class TransactionWorkFlowTransition(graphene.Mutation):
+    ok = graphene.Boolean(required=True)
+    errors = graphene.List(graphene.String, required=True)
+
+    class Arguments:
+        id = graphene.Int(required=True)
+        transition = graphene.String(required=True, description='transition')
+        description = graphene.String(required=False, description='description')
+
+    # @permission_required('WF_STUFF_ROLE')
+    def mutate(self, info, id, transition, description):
+        errors = []
+        current_user: User = info.context.user
+        transaction: Transaction = Transaction.objects.get(id=id)
+
+        if not current_user.has_perm("api.can_change_transaction_wf_state_for_all"):
+            # عدم دسترسی به تغییر مرحله گردش کار برای دیگران
+            if transaction.profile != current_user.profile:
+                # errors.append("perm: (api.can_change_wf_state_for_all)  - عدم دسترسی برای تغییر گردش کار دیگران")
+                # return ProfileWorkFlowTransition(ok=False, errors=errors)
+                raise Exception(
+                    "perm: (api.can_change_wf_transactionـstate_for_all)- عدم دسترسی برای تغییر گردش کار تراکنش دیگران")
+
+        avail_user_trans = list(transaction.get_available_user_state_transitions(user=current_user))
+        attr = list(o.name for o in avail_user_trans)
+        if transition in attr:
+            getattr(transaction, transition)(by=current_user, description=description)
+            transaction.save()
+        else:
+            errors.append('transition ثrror')
+
+        if errors:
+            return TransactionWorkFlowTransition(ok=False, errors=errors)
+        else:
+            return TransactionWorkFlowTransition(ok=True, errors=errors)
 
 
 class Mutation(graphene.ObjectType):

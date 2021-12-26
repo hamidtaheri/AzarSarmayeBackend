@@ -92,21 +92,30 @@ class ImageType(DjangoObjectType):
         fields = ['id', 'description', 'kind', 'image', ]
 
 
+class DictionaryType(ObjectType):
+    key = graphene.String()
+    value = graphene.String()
+
+
 class TransitionType(ObjectType):
     name = graphene.String()
     source = graphene.String()
     target = graphene.String()
     permission = graphene.String()
+    # custom = graphene.List(DictionaryType)
 
 
 def all_workflow_transitions(instance):
     tr: list[TransitionType] = list[TransitionType]()
     for i in list(instance.get_all_state_transitions()):
         t: TransitionType = TransitionType()
+        # t.custom = {}
         t.name = i.name
         t.target = i.target
         t.source = i.source
         t.permission = i.permission
+        # for k, v in i.custom.items():
+        #     t.custom[k] = v
         tr.append(t)
     return tr
 
@@ -154,7 +163,7 @@ class ProfileType(DjangoObjectType):
         az_date=Date(required=True, description='از تاریخ'),
         ta_date=Date(required=True, description='تا تاریخ'),
     )
-    workflow_transition = graphene.List(of_type=graphene.String, description='مرحله بعدی در گردش کار')
+    # workflow_transition = graphene.List(of_type=graphene.String, description='مرحله بعدی در گردش کار')
     all_workflow_transitions = graphene.List(of_type=TransitionType, description='تمامی گردش کارهای پروفایل')
     available_workflow_transitions = graphene.List(of_type=TransitionType, description='گردش کارهای مجاز در این مرحله')
     available_user_workflow_transitions = graphene.List(of_type=TransitionType,
@@ -230,12 +239,12 @@ class ProfileType(DjangoObjectType):
         r, sum_sod = user.mohasebe_sod_old(az_date=az_date, ta_date=ta_date)
         return sum_sod
 
-    def resolve_workflow_transition(self, info):
-        current_user: User = info.context.user
-        avail_user_trans = self.get_available_user_state_transitions(user=current_user)
-        avail_user_trans_list = list(avail_user_trans)
-        attr = (o.name for o in avail_user_trans_list)
-        return attr
+    # def resolve_workflow_transition(self, info):
+    #     current_user: User = info.context.user
+    #     avail_user_trans = self.get_available_user_state_transitions(user=current_user)
+    #     avail_user_trans_list = list(avail_user_trans)
+    #     attr = (o.name for o in avail_user_trans_list)
+    #     return attr
 
     def resolve_all_workflow_transitions(self, info):
         return all_workflow_transitions(self)
@@ -295,6 +304,10 @@ class TransactionType(DjangoObjectType):
     id = graphene.ID(source='pk', required=True)
     amount = graphene.Float(required=True, description='مبلغ')
     images = graphene.List(of_type=ImageType)
+    all_workflow_transitions = graphene.List(of_type=TransitionType, description='تمامی گردش کارهای پروفایل')
+    available_workflow_transitions = graphene.List(of_type=TransitionType, description='گردش کارهای مجاز در این مرحله')
+    available_user_workflow_transitions = graphene.List(of_type=TransitionType,
+                                                        description='گردش کارهای مجاز در این مرحله و توسط کاربر جاری')
 
     class Meta:
         model = Transaction
@@ -322,6 +335,16 @@ class TransactionType(DjangoObjectType):
 
         images = Image.objects.filter(content_type=ct, object_id=self.id)
         return images
+
+    def resolve_all_workflow_transitions(self, info):
+        return all_workflow_transitions(self)
+
+    def resolve_available_workflow_transitions(self, info):
+        return available_workflow_transitions(self)
+
+    def resolve_available_user_workflow_transitions(self, info):
+        current_user: User = info.context.user
+        return available_user_workflow_transitions(self, current_user)
 
 
 class TransactionKindType(DjangoObjectType):
@@ -494,7 +517,8 @@ class Query(graphene.ObjectType):
         if not current_user.has_perm('api.view_all_transactions'):  # کاربر دسترسی ندارد
             #  فیلتر بر اساس کاربر جاری
             transactions = transactions.filter(profile__user=current_user)
-
+        allowed_workflow = allowed_workflow_sates(current_user)
+        transactions = transactions.filter(state__in=allowed_workflow)  # "START",
         return transactions
 
     @login_required
