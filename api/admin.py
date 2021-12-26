@@ -99,7 +99,7 @@ class TransactionKindAdmin(ImportExportModelAdmin):
 admin.site.register(models.Post)
 admin.site.register(models.ImageKind)
 admin.site.register(models.ProfitKind)
-admin.site.register(models.PelekanKind)
+admin.site.register(models.Plan)
 admin.site.register(models.ProfileImageGallery)
 admin.site.register(models.TransactionRequest)
 admin.site.register(models.TransactionRequestKind)

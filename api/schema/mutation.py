@@ -304,7 +304,7 @@ class CreateUser(graphene.Mutation):
 
     def mutate(self, info, input):
         try:
-            new_user: User = User(username=input.username, email=input.email)
+            new_user: User = User(username=input.username)
             new_user.set_password(input.password)
             new_user.save()
             new_user.last_login = timezone.now()
@@ -643,6 +643,7 @@ class Mutation(graphene.ObjectType):
     update_profile = UpdateProfile.Field()
     stuff_confirm_profile = StuffConfirmProfile.Field(description='')
     profile_workflow_transition = ProfileWorkFlowTransition.Field(description='مرحله بعد در گردش کار پروفایل')
+    transaction_workflow_transition = TransactionWorkFlowTransition.Field(description='مرحله بعد در گردش کار تراکنش')
     # create_tarakonesh = CreateTarakonesh.Field()
     token_auth = graphql_jwt.ObtainJSONWebToken.Field()
     delete_token = graphql_jwt.Revoke.Field()

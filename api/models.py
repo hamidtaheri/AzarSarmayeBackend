@@ -504,9 +504,11 @@ class ProfileImageGallery(models.Model):
                                 blank=True)
 
 
-class PelekanKind(models.Model):
+class Plan(models.Model):
     title = models.CharField(max_length=200)
     start_date = models.DateField(null=True, blank=True)
+    end_date = models.DateField(null=True, blank=True)
+    monthly = models.BooleanField(verbose_name='پرداخت سود ماهانه', default=True)
     description = models.TextField(null=True, blank=True)
 
     def __str__(self):
@@ -517,7 +519,7 @@ class Pelekan(models.Model):
     az = models.PositiveBigIntegerField()
     ta = models.PositiveBigIntegerField()
     percent = models.IntegerField()
-    kind = models.ForeignKey(PelekanKind, null=True, blank=True, on_delete=models.DO_NOTHING, related_name='kinds')
+    kind = models.ForeignKey(Plan, null=True, blank=True, on_delete=models.DO_NOTHING, related_name='pelekans')
     description = models.TextField(null=True, blank=True)
 
     def __str__(self):
@@ -536,7 +538,7 @@ class Transaction(models.Model):
     date_time = models.DateTimeField()
     amount = models.BigIntegerField()
     kind = models.ForeignKey(TransactionKind, on_delete=models.CASCADE, related_name='transactions')
-    plan = models.ForeignKey(to=PelekanKind, on_delete=models.SET_NULL, null=True, blank=True)
+    plan = models.ForeignKey(to=Plan, on_delete=models.SET_NULL, null=True, blank=True)
     NahveyePardakht = models.CharField(max_length=40, blank=True, null=True)
     description = models.TextField(blank=True, null=True)
     Tbl_Pardakht_List_id = models.IntegerField(blank=True, null=True)
@@ -545,7 +547,7 @@ class Transaction(models.Model):
     DarMelyoon_Moaref = models.IntegerField(blank=True, null=True)
     images = GenericRelation(Image, related_name='transaction_images')
     contract_term = models.SmallIntegerField(verbose_name='مدت قرارداد', null=True, blank=True)
-    state = FSMField(choices=WorkFlowStates.STATES, protected=True)  # transaction workflow state
+    state = FSMField(choices=WorkFlowStates.STATES, protected=True, default='start')  # transaction workflow state
     alias = models.CharField(max_length=200, verbose_name='نام دیگر', null=True, blank=True)
 
     # logging fields
@@ -586,53 +588,73 @@ class Transaction(models.Model):
              "گردش کار تراکنش از تایید شده توسط کارمند به تایید شده توسط مدیر"),
         )
 
+    @fsm_log_by
+    @fsm_log_description
     @transition(field=state, source="start", target="converted")
-    def to_convert(self):
+    def to_convert(self, by=None, description=None):
         pass
 
+    @fsm_log_by
+    @fsm_log_description
     @transition(field=state, source="start", target="stuff_added",
                 permission='api.WF_TRANSITION_TRANSACTION_START_TO_STUFF_ADDED')
-    def to_stuff_add(self):
+    def to_stuff_add(self, by=None, description=None):
         pass
 
+    @fsm_log_by
+    @fsm_log_description
     @transition(field=state, source="converted", target="stuff_added",
                 permission='api.WF_TRANSITION_TRANSACTION_CONVERTED_TO_STUFF_ADDED')
-    def converted_to_stuff_add(self):
+    def converted_to_stuff_add(self, by=None, description=None):
         pass
 
+    @fsm_log_by
+    @fsm_log_description
     @transition(field=state, source="start", target="customer_added",
                 permission='api.WF_TRANSITION_TRANSACTION_START_TO_CUSTOMER_ADDED')
-    def to_customer_add(self):
+    def to_customer_add(self, by=None, description=None):
         pass
 
+    @fsm_log_by
+    @fsm_log_description
     @transition(field=state, source="stuff_added", target="customer_confirmed",
                 permission='api.WF_TRANSITION_TRANSACTION_STUFF_ADDED_TO_COSTUMER_CONFIRMED')
-    def to_customer_confirm(self):
+    def to_customer_confirm(self, by=None, description=None):
         pass
 
+    @fsm_log_by
+    @fsm_log_description
     @transition(field=state, source="stuff_added", target="stuff_added",
                 permission='api.WF_TRANSITION_TRANSACTION_STUFF_ADDED_TO_STUFF_ADDED')
-    def customer_reject(self):
+    def customer_reject(self, by=None, description=None):
         pass
 
+    @fsm_log_by
+    @fsm_log_description
     @transition(field=state, source="customer_added", target="stuff_confirmed",
                 permission='api.WF_TRANSITION_TRANSACTION_COSTUMER_ADDED_TO_STUFF_CONFIRMED')
-    def to_stuff_confirm(self):
+    def to_stuff_confirm(self, by=None, description=None):
         pass
 
+    @fsm_log_by
+    @fsm_log_description
     @transition(field=state, source="customer_added", target="customer_added",
                 permission='api.WF_TRANSITION_TRANSACTION_COSTUMER_ADDED_TO_COSTUMER_ADDED')
-    def stuff_reject(self):
+    def stuff_reject(self, by=None, description=None):
         pass
 
+    @fsm_log_by
+    @fsm_log_description
     @transition(field=state, source="customer_confirmed", target="boss_confirmed",
                 permission='api.WF_TRANSITION_TRANSACTION_COSTUMER_CONFIRMED_TO_BOSS_CONFIRMED')
-    def customer_confirm_to_boss_confirm(self):
+    def customer_confirm_to_boss_confirm(self, by=None, description=None):
         pass
 
+    @fsm_log_by
+    @fsm_log_description
     @transition(field=state, source="stuff_confirmed", target="boss_confirmed",
                 permission='api.WF_TRANSITION_TRANSACTION_STUFF_CONFIRMED_TO_BOSS_CONFIRMED')
-    def to_boss_confirm(self):
+    def to_boss_confirm(self, by=None, description=None):
         pass
 
     def percent_calculator(self) -> float:

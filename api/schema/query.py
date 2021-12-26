@@ -49,7 +49,7 @@ class UserType(DjangoObjectType):
         model = User
         fields = (
             'id', 'first_name', 'last_name',
-            'username', 'profile', 'last_login', 'user_permissions', 'all_permissions',)
+            'username', 'profile', 'last_login', 'user_permissions', 'all_permissions', 'groups')
         # groups
 
     @staticmethod
@@ -313,7 +313,7 @@ class TransactionType(DjangoObjectType):
         model = Transaction
         fields = (
             'profile', 'effective_date', 'date_time', 'amount', 'percent', 'kind', 'description', 'images',
-            'contract_term', 'expire_date', 'alias')
+            'contract_term', 'expire_date', 'alias','plan')
         filter_fields = {'id': ['exact'], 'profile__id': ['exact'],
                          'effective_date': ['lte', 'gte', 'range'],
                          'kind__id': ['exact'], }
@@ -404,10 +404,6 @@ class BankType(DjangoObjectType):
         fields = ['name', 'description', ]
 
 
-# class WorkflowSatesType:
-#     class Meta:
-#         model = WorkFlowStates
-#
 def allowed_workflow_sates(user: User) -> list:
     workflow_sates = []
     if user.has_perm('api.START_WF_STATE'):
@@ -428,6 +424,32 @@ def allowed_workflow_sates(user: User) -> list:
         workflow_sates.append('boss_confirmed')
 
     return workflow_sates
+
+
+class PlanType(DjangoObjectType):
+    id = graphene.ID(source='pk', required=True)
+
+    class Meta:
+        model = Plan
+        fields = ['title', 'start_date', 'end_date', 'monthly', 'description', 'pelekans']
+
+
+class PelekanType(DjangoObjectType):
+    id = graphene.ID(source='pk', required=True)
+    az = graphene.Float()
+    ta = graphene.Float()
+
+    class Meta:
+        model = Pelekan
+        fields = ['percent', 'description', ]
+
+    @staticmethod
+    def resolve_az(self, info):
+        return self.az
+
+    @staticmethod
+    def resolve_ta(self, info):
+        return self.ta
 
 
 class Query(graphene.ObjectType):
@@ -470,6 +492,7 @@ class Query(graphene.ObjectType):
     cities = DjangoFilterConnectionField(CityType)
     image_kind = graphene.List(ImageKindType)
     bank = graphene.List(BankType)
+    plan = graphene.List(of_type=PlanType, description='طرح های سرمایه گزاری')
 
     #################
 
@@ -595,3 +618,6 @@ class Query(graphene.ObjectType):
 
     def resolve_bank(root, info):
         return Bank.objects.all()
+
+    def resolve_plan(self, info):
+        return Plan.objects.all()
