@@ -547,11 +547,11 @@ class Transaction(models.Model):
     DarMelyoon_Moaref = models.IntegerField(blank=True, null=True)
     images = GenericRelation(Image, related_name='transaction_images')
     contract_term = models.SmallIntegerField(verbose_name='مدت قرارداد', null=True, blank=True)
-    state = FSMField(choices=WorkFlowStates.STATES, protected=True, default='start')  # transaction workflow state
+    state = FSMField(choices=WorkFlowStates.STATES, protected=True, default='start',)  # transaction workflow state
     alias = models.CharField(max_length=200, verbose_name='نام دیگر', null=True, blank=True)
 
     # logging fields
-    created = models.DateTimeField(auto_now_add=True, editable=False,blank=True,null=True)
+    created = models.DateTimeField(auto_now_add=True, editable=False, blank=True, null=True)
     created_by = models.ForeignKey(get_user_model(), on_delete=models.DO_NOTHING, blank=False, null=False,
                                    related_name='transactions_create_by', editable=False)
     modified = models.DateTimeField(auto_now=True, editable=False)
@@ -847,6 +847,10 @@ class TransactionRequest(models.Model):
     kind = models.ForeignKey(TransactionRequestKind, on_delete=models.CASCADE, blank=False, null=False)
     created = models.DateTimeField(auto_now=True)
     description = models.TextField(null=True, blank=True)
+    images = GenericRelation(Image, related_name='transaction_request_images')
+
+    # workflow state
+    state = FSMField(choices=WorkFlowStates.STATES, protected=False, default=WorkFlowStates.START, verbose_name='مرحله در گردش کار')
 
     def __str__(self):
         return f'{self.kind.title} - {self.transaction}'
@@ -854,7 +858,35 @@ class TransactionRequest(models.Model):
     class Meta:
         permissions = (
             ("view_all_TransactionRequests", "مشاهده همه درخواست های مربوط به تراکنش ها"),
-            ("add_TransactionRequests_for_others", "ایجاد درخواست مربوط به تراکنش برای دیگران"))
+            ("add_TransactionRequests_for_others", "ایجاد درخواست مربوط به تراکنش برای دیگران"),
+            ('WF_TRANSITION_TRANSACTION_REQUEST_START_TO_CUSTOMER_ADDED',
+             "گردش کار درخواست روی تراکنش از شروع به افزوده شده توسط مشتری"),
+            ('WF_TRANSITION_TRANSACTION_REQUEST_CUSTOMER_ADDED_TO_STUFF_CHECKED',
+             "گردش کار درخواست روی تراکنش از افزوده شده توسط مشتری به بررسی شده توسط کارمند"),
+            ("WF_TRANSITION_TRANSACTION_REQUEST_STUFF_CHECKED_TO_BOSS_CONFIRMED",
+             "گردش کار تراکنش از بررسی شده توسط کارمند به تایید شده توسط مدیر"),
+        )
+
+    @fsm_log_by
+    @fsm_log_description
+    @transition(field=state, source=WorkFlowStates.START, target=WorkFlowStates.CUSTOMER_ADDED,
+                permission='api.WF_TRANSITION_TRANSACTION_REQUEST_START_TO_CUSTOMER_ADDED')
+    def to_customer_add(self, by=None, description=None):
+        pass
+
+    @fsm_log_by
+    @fsm_log_description
+    @transition(field=state, source=WorkFlowStates.CUSTOMER_ADDED, target=WorkFlowStates.STUFF_CHECKED,
+                permission='api.WF_TRANSITION_TRANSACTION_REQUEST_CUSTOMER_ADDED_TO_STUFF_CHECKED')
+    def to_stuff_checked(self, by=None, description=None):
+        pass
+
+    @fsm_log_by
+    @fsm_log_description
+    @transition(field=state, source=WorkFlowStates.STUFF_CHECKED, target=WorkFlowStates.BOSS_CONFIRMED,
+                permission='api.WF_TRANSITION_TRANSACTION_REQUEST_STUFF_CHECKED_TO_BOSS_CONFIRMED')
+    def to_boss_confirmed(self, by=None, description=None):
+        pass
 
 
 def mohasebe_sod_1_nafar(profile_id: int, az_date: datetime, ta_date: datetime):

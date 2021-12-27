@@ -177,7 +177,7 @@ class ProfileType(DjangoObjectType):
             'id_number', 'birth_date',
             'account_number', 'sheba', 'card_number', 'bank',
             'address', 'city', 'postal_code', 'tel', 'home_phone', 'office_phone', 'mobile1', 'mobile2', 'email',
-            'description', 'transactions', 'images',
+            'description', 'transactions', 'images', 'state'
         )
         filter_fields = {
             'id': ['exact'],
@@ -210,9 +210,6 @@ class ProfileType(DjangoObjectType):
 
         images = Image.objects.filter(content_type=ct, object_id=self.id)
         return images
-
-    def resolve_state(self, info):
-        return self.state
 
     def resolve_state_history(self, info):
         return StateLog.objects.for_(self)
@@ -284,12 +281,38 @@ class MohasebeSodForAllSummaryType(ObjectType):
 
 class TransactionRequestType(DjangoObjectType):
     id = graphene.ID(source='pk', required=True)
+    state_history = graphene.List(of_type=WorkFlowHistoryType)
+    all_workflow_transitions = graphene.List(of_type=TransitionType, description='تمامی گردش کارهای تراکنش')
+    available_workflow_transitions = graphene.List(of_type=TransitionType, description='گردش کارهای مجاز در این مرحله')
+    available_user_workflow_transitions = graphene.List(of_type=TransitionType,
+                                                        description='گردش کارهای مجاز در این مرحله و توسط کاربر جاری')
 
     class Meta:
         model = TransactionRequest
-        fields = ('transaction', 'kind', 'created', 'description')
+        fields = ('transaction', 'kind', 'created', 'description', 'images', 'state')
         filter_fields = {'id': ['exact'], 'transaction__id': ['exact'], 'kind__id': ['exact'], }
         interfaces = (relay.Node,)
+
+    def resolve_images(self, info):
+        current_user: User = info.context.user
+        transaction_request: TransactionRequest = self
+        ct = ContentType.objects.get_for_model(self)
+
+        images = Image.objects.filter(content_type=ct, object_id=self.id)
+        return images
+
+    def resolve_all_workflow_transitions(self, info):
+        return all_workflow_transitions(self)
+
+    def resolve_available_workflow_transitions(self, info):
+        return available_workflow_transitions(self)
+
+    def resolve_available_user_workflow_transitions(self, info):
+        current_user: User = info.context.user
+        return available_user_workflow_transitions(self, current_user)
+
+    def resolve_state_history(self, info):
+        return StateLog.objects.for_(self)
 
 
 class TransactionRequestKindType(DjangoObjectType):
@@ -304,7 +327,8 @@ class TransactionType(DjangoObjectType):
     id = graphene.ID(source='pk', required=True)
     amount = graphene.Float(required=True, description='مبلغ')
     images = graphene.List(of_type=ImageType)
-    all_workflow_transitions = graphene.List(of_type=TransitionType, description='تمامی گردش کارهای پروفایل')
+    state_history = graphene.List(of_type=WorkFlowHistoryType)
+    all_workflow_transitions = graphene.List(of_type=TransitionType, description='تمامی گردش کارهای تراکنش')
     available_workflow_transitions = graphene.List(of_type=TransitionType, description='گردش کارهای مجاز در این مرحله')
     available_user_workflow_transitions = graphene.List(of_type=TransitionType,
                                                         description='گردش کارهای مجاز در این مرحله و توسط کاربر جاری')
@@ -313,10 +337,11 @@ class TransactionType(DjangoObjectType):
         model = Transaction
         fields = (
             'profile', 'effective_date', 'date_time', 'amount', 'percent', 'kind', 'description', 'images',
-            'contract_term', 'expire_date', 'alias','plan')
+            'contract_term', 'expire_date', 'alias', 'plan', 'state')
         filter_fields = {'id': ['exact'], 'profile__id': ['exact'],
                          'effective_date': ['lte', 'gte', 'range'],
-                         'kind__id': ['exact'], }
+                         'kind__id': ['exact'],
+                         'state': ['in']}
         # exclude = ('tarikh')
         connection_class = count_sum_tarakonesh_ConnectionBase
         interfaces = (relay.Node,)
@@ -345,6 +370,9 @@ class TransactionType(DjangoObjectType):
     def resolve_available_user_workflow_transitions(self, info):
         current_user: User = info.context.user
         return available_user_workflow_transitions(self, current_user)
+
+    def resolve_state_history(self, info):
+        return StateLog.objects.for_(self)
 
 
 class TransactionKindType(DjangoObjectType):
@@ -521,9 +549,12 @@ class Query(graphene.ObjectType):
         current_user: get_user_model() = info.context.user
         tr_reqs = TransactionRequest.objects.all()
 
-        if not current_user.has_perm('api.view_all_TransactionRequests'):
+        if not current_user.has_perm('api.view_all_TransactionRequests'):  # کاربر دسترسی ندارد
+            #  فیلتر بر اساس کاربر جاری
             tr_reqs = tr_reqs.filter(transaction__profile__user=current_user)
 
+        allowed_workflow = allowed_workflow_sates(current_user)
+        tr_reqs = tr_reqs.filter(state__in=allowed_workflow)  # "START",
         return tr_reqs
 
     @staticmethod

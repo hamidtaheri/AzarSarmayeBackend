@@ -34,11 +34,16 @@ def set_wf_state_to_converted():
 def set_costumer_group_permisions(name: str):
     customer_group: Group = Group.objects.get(name=name)
     customer_perms: list[Permission] = []
+
+    customer_perms.append(Permission.objects.get(codename='can_add_profile'))
+
+    # workflow states
     customer_perms.append(Permission.objects.get(codename='STUFF_ADDED_WF_STATE'))
     customer_perms.append(Permission.objects.get(codename='CUSTOMER_ADDED_WF_STATE'))
     customer_perms.append(Permission.objects.get(codename='STUFF_CHECKED_WF_STATE'))
     customer_perms.append(Permission.objects.get(codename='STUFF_CONFIRMED_WF_STATE'))
     customer_perms.append(Permission.objects.get(codename='CUSTOMER_CONFIRMED_WF_STATE'))
+    # workflow transitions for profile
     customer_perms.append(Permission.objects.get(codename='WF_TRANSITION_PROFILE_START_TO_CUSTOMER_ADDED'))
     customer_perms.append(Permission.objects.get(codename='WF_TRANSITION_PROFILE_STUFF_ADDED_TO_COSTUMER_CONFIRMED'))
     customer_perms.append(Permission.objects.get(codename='WF_TRANSITION_PROFILE_STUFF_ADDED_TO_STUFF_ADDED'))

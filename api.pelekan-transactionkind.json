@@ -1,0 +1,598 @@
+[
+{
+    "model": "api.pelekan",
+    "pk": 1,
+    "fields": {
+        "az": 0,
+        "ta": 500000000,
+        "percent": 600000,
+        "kind": 1,
+        "description": ""
+    }
+},
+{
+    "model": "api.pelekan",
+    "pk": 2,
+    "fields": {
+        "az": 500000000,
+        "ta": 1000000000,
+        "percent": 650000,
+        "kind": 1,
+        "description": null
+    }
+},
+{
+    "model": "api.pelekan",
+    "pk": 3,
+    "fields": {
+        "az": 1000000000,
+        "ta": 3000000000,
+        "percent": 700000,
+        "kind": 1,
+        "description": null
+    }
+},
+{
+    "model": "api.pelekan",
+    "pk": 4,
+    "fields": {
+        "az": 3000000000,
+        "ta": 5000000000,
+        "percent": 750000,
+        "kind": 1,
+        "description": null
+    }
+},
+{
+    "model": "api.pelekan",
+    "pk": 5,
+    "fields": {
+        "az": 5000000000,
+        "ta": 999999999999999,
+        "percent": 800000,
+        "kind": 1,
+        "description": null
+    }
+},
+{
+    "model": "api.pelekan",
+    "pk": 6,
+    "fields": {
+        "az": 10,
+        "ta": 5000000000,
+        "percent": 50000,
+        "kind": 2,
+        "description": null
+    }
+},
+{
+    "model": "api.pelekan",
+    "pk": 7,
+    "fields": {
+        "az": 5000000000,
+        "ta": 30000000000,
+        "percent": 100000,
+        "kind": 2,
+        "description": null
+    }
+},
+{
+    "model": "api.pelekan",
+    "pk": 8,
+    "fields": {
+        "az": 30000000000,
+        "ta": 80000000000,
+        "percent": 150000,
+        "kind": 2,
+        "description": null
+    }
+},
+{
+    "model": "api.pelekan",
+    "pk": 9,
+    "fields": {
+        "az": 80000000000,
+        "ta": 200000000000,
+        "percent": 200000,
+        "kind": 2,
+        "description": null
+    }
+},
+{
+    "model": "api.pelekan",
+    "pk": 10,
+    "fields": {
+        "az": 200000000000,
+        "ta": 400000000000,
+        "percent": 250000,
+        "kind": 2,
+        "description": null
+    }
+},
+{
+    "model": "api.pelekan",
+    "pk": 11,
+    "fields": {
+        "az": 400000000000,
+        "ta": 999999999999999,
+        "percent": 300000,
+        "kind": 2,
+        "description": null
+    }
+},
+{
+    "model": "api.plan",
+    "pk": 1,
+    "fields": {
+        "title": "طرح غدیر۱۴۰۰",
+        "start_date": null,
+        "end_date": null,
+        "monthly": true,
+        "description": "طرح غدیر۱۴۰۰"
+    }
+},
+{
+    "model": "api.plan",
+    "pk": 2,
+    "fields": {
+        "title": "پلکان سود معرف ها",
+        "start_date": null,
+        "end_date": null,
+        "monthly": true,
+        "description": "پلکان سود معرف ها"
+    }
+},
+{
+    "model": "api.transactionkind",
+    "pk": 1,
+    "fields": {
+        "title": "سپرده گذاری",
+        "description": ""
+    }
+},
+{
+    "model": "api.transactionkind",
+    "pk": 2,
+    "fields": {
+        "title": "مرجوع",
+        "description": ""
+    }
+},
+{
+    "model": "api.transactionkind",
+    "pk": 3,
+    "fields": {
+        "title": "واریز سود",
+        "description": ""
+    }
+},
+{
+    "model": "api.transactionkind",
+    "pk": 4,
+    "fields": {
+        "title": "برداشت سود",
+        "description": ""
+    }
+},
+{
+    "model": "api.transactionkind",
+    "pk": 5,
+    "fields": {
+        "title": "واریز سود معرفی",
+        "description": ""
+    }
+},
+{
+    "model": "api.profitkind",
+    "pk": 1,
+    "fields": {
+        "name": "سود سپرده گذاری"
+    }
+},
+{
+    "model": "api.profitkind",
+    "pk": 2,
+    "fields": {
+        "name": "سود معرفی"
+    }
+},
+{
+    "model": "api.bank",
+    "pk": 1,
+    "fields": {
+        "name": "اقتصاد نوین",
+        "description": null
+    }
+},
+{
+    "model": "api.bank",
+    "pk": 2,
+    "fields": {
+        "name": "انصار",
+        "description": null
+    }
+},
+{
+    "model": "api.bank",
+    "pk": 3,
+    "fields": {
+        "name": "ایران زمین",
+        "description": null
+    }
+},
+{
+    "model": "api.bank",
+    "pk": 4,
+    "fields": {
+        "name": "پارسیان",
+        "description": null
+    }
+},
+{
+    "model": "api.bank",
+    "pk": 5,
+    "fields": {
+        "name": "پاسارگاد",
+        "description": null
+    }
+},
+{
+    "model": "api.bank",
+    "pk": 6,
+    "fields": {
+        "name": "پست ایران",
+        "description": null
+    }
+},
+{
+    "model": "api.bank",
+    "pk": 7,
+    "fields": {
+        "name": "تجارت",
+        "description": null
+    }
+},
+{
+    "model": "api.bank",
+    "pk": 8,
+    "fields": {
+        "name": "توسعه تعاون",
+        "description": null
+    }
+},
+{
+    "model": "api.bank",
+    "pk": 9,
+    "fields": {
+        "name": "توسعه صادرات ایران",
+        "description": null
+    }
+},
+{
+    "model": "api.bank",
+    "pk": 10,
+    "fields": {
+        "name": "حکمت ایرانیان",
+        "description": null
+    }
+},
+{
+    "model": "api.bank",
+    "pk": 11,
+    "fields": {
+        "name": "خاور میانه",
+        "description": null
+    }
+},
+{
+    "model": "api.bank",
+    "pk": 12,
+    "fields": {
+        "name": "دی",
+        "description": null
+    }
+},
+{
+    "model": "api.bank",
+    "pk": 13,
+    "fields": {
+        "name": "رفاه",
+        "description": null
+    }
+},
+{
+    "model": "api.bank",
+    "pk": 14,
+    "fields": {
+        "name": "سامان",
+        "description": null
+    }
+},
+{
+    "model": "api.bank",
+    "pk": 15,
+    "fields": {
+        "name": "سپه",
+        "description": null
+    }
+},
+{
+    "model": "api.bank",
+    "pk": 16,
+    "fields": {
+        "name": "سرمایه",
+        "description": null
+    }
+},
+{
+    "model": "api.bank",
+    "pk": 17,
+    "fields": {
+        "name": "سینا",
+        "description": null
+    }
+},
+{
+    "model": "api.bank",
+    "pk": 18,
+    "fields": {
+        "name": "شهر",
+        "description": null
+    }
+},
+{
+    "model": "api.bank",
+    "pk": 19,
+    "fields": {
+        "name": "صادرات",
+        "description": null
+    }
+},
+{
+    "model": "api.bank",
+    "pk": 20,
+    "fields": {
+        "name": "نعت و معدن",
+        "description": null
+    }
+},
+{
+    "model": "api.bank",
+    "pk": 21,
+    "fields": {
+        "name": "قرض",
+        "description": null
+    }
+},
+{
+    "model": "api.bank",
+    "pk": 22,
+    "fields": {
+        "name": "قرض",
+        "description": null
+    }
+},
+{
+    "model": "api.bank",
+    "pk": 23,
+    "fields": {
+        "name": "قوامین",
+        "description": null
+    }
+},
+{
+    "model": "api.bank",
+    "pk": 24,
+    "fields": {
+        "name": "کارآفرین",
+        "description": null
+    }
+},
+{
+    "model": "api.bank",
+    "pk": 25,
+    "fields": {
+        "name": "کشاورزی",
+        "description": null
+    }
+},
+{
+    "model": "api.bank",
+    "pk": 26,
+    "fields": {
+        "name": "گردشگری",
+        "description": null
+    }
+},
+{
+    "model": "api.bank",
+    "pk": 27,
+    "fields": {
+        "name": "مسکن",
+        "description": null
+    }
+},
+{
+    "model": "api.bank",
+    "pk": 28,
+    "fields": {
+        "name": "مشترک ایران-ونزوئلا",
+        "description": null
+    }
+},
+{
+    "model": "api.bank",
+    "pk": 29,
+    "fields": {
+        "name": "ملّی ایران",
+        "description": null
+    }
+},
+{
+    "model": "api.bank",
+    "pk": 30,
+    "fields": {
+        "name": "ملت",
+        "description": null
+    }
+},
+{
+    "model": "api.transactionrequestkind",
+    "pk": 1,
+    "fields": {
+        "title": "ابطال",
+        "description": "پایان قراردادی که مدت آن به پایان رسیده"
+    }
+},
+{
+    "model": "api.transactionrequestkind",
+    "pk": 2,
+    "fields": {
+        "title": "تجدید",
+        "description": "تجدید"
+    }
+},
+{
+    "model": "api.transactionrequestkind",
+    "pk": 3,
+    "fields": {
+        "title": "فسخ",
+        "description": "پایان قراردادی که مدت زمان أن به پایان نرسیده"
+    }
+},
+{
+    "model": "auth.group",
+    "pk": 1,
+    "fields": {
+        "name": "stuff_group",
+        "permissions": [
+            26,
+            60,
+            116,
+            130,
+            46
+        ]
+    }
+},
+{
+    "model": "auth.group",
+    "pk": 2,
+    "fields": {
+        "name": "customer_group",
+        "permissions": [
+            123,
+            126,
+            125,
+            132,
+            135,
+            131,
+            133,
+            134
+        ]
+    }
+},
+{
+    "model": "auth.group_permissions",
+    "pk": 1,
+    "fields": {
+        "group": 1,
+        "permission": 46
+    }
+},
+{
+    "model": "auth.group_permissions",
+    "pk": 3,
+    "fields": {
+        "group": 1,
+        "permission": 116
+    }
+},
+{
+    "model": "auth.group_permissions",
+    "pk": 4,
+    "fields": {
+        "group": 1,
+        "permission": 26
+    }
+},
+{
+    "model": "auth.group_permissions",
+    "pk": 5,
+    "fields": {
+        "group": 1,
+        "permission": 130
+    }
+},
+{
+    "model": "auth.group_permissions",
+    "pk": 6,
+    "fields": {
+        "group": 1,
+        "permission": 60
+    }
+},
+{
+    "model": "auth.group_permissions",
+    "pk": 7,
+    "fields": {
+        "group": 2,
+        "permission": 131
+    }
+},
+{
+    "model": "auth.group_permissions",
+    "pk": 8,
+    "fields": {
+        "group": 2,
+        "permission": 132
+    }
+},
+{
+    "model": "auth.group_permissions",
+    "pk": 9,
+    "fields": {
+        "group": 2,
+        "permission": 133
+    }
+},
+{
+    "model": "auth.group_permissions",
+    "pk": 10,
+    "fields": {
+        "group": 2,
+        "permission": 134
+    }
+},
+{
+    "model": "auth.group_permissions",
+    "pk": 11,
+    "fields": {
+        "group": 2,
+        "permission": 135
+    }
+},
+{
+    "model": "auth.group_permissions",
+    "pk": 12,
+    "fields": {
+        "group": 2,
+        "permission": 123
+    }
+},
+{
+    "model": "auth.group_permissions",
+    "pk": 13,
+    "fields": {
+        "group": 2,
+        "permission": 125
+    }
+},
+{
+    "model": "auth.group_permissions",
+    "pk": 14,
+    "fields": {
+        "group": 2,
+        "permission": 126
+    }
+}
+]

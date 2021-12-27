@@ -1,3 +1,4 @@
+import graphene
 import graphql_jwt
 from django.contrib.auth import authenticate
 from django.core.exceptions import ObjectDoesNotExist
@@ -260,17 +261,27 @@ class UpdateTransaction(graphene.Mutation):
         return UpdateTransactionPayload(transaction=transaction)
 
 
+class CreateTransactionRequestImput(graphene.InputObjectType):
+    transaction_id = Int(required=True)
+    kind_id = graphene.Int(required=True)
+    description = String()
+    images = graphene.List(CreateImageInput, required=False, )
+
+
 class CreateTransactionRequest(graphene.Mutation):
     class Arguments:
-        transaction_id = Int(required=True)
-        kind_id = Int(required=True)
-        description = String()
+        input_data = CreateTransactionRequestImput(required=True, name="input")
 
     ok = graphene.Boolean(required=True)
     errors = graphene.List(graphene.String, required=True)
+    transaction_request = graphene.Field(type=TransactionRequestType)
 
     @login_required
-    def mutate(self, info, transaction_id, kind_id, description):
+    def mutate(self, info, input_data: CreateTransactionRequestImput):
+        transaction_id = input_data.transaction_id
+        kind_id = input_data.kind_id
+        description = input_data.description
+        images = input_data.images
         errors = []
         current_user: User = info.context.user
         try:
@@ -278,21 +289,33 @@ class CreateTransactionRequest(graphene.Mutation):
         except ObjectDoesNotExist:
             errors.append('transaction dos not exist')
             return CreateTransactionRequest(ok=False, errors=errors)
-        if current_user.has_perm("api.add_TransactionRequests_for_others") or tr.profile.user == current_user:
-            TransactionRequest.objects.create(transaction_id=transaction_id, kind_id=kind_id, description=description)
-        else:
-            errors.append('دسترسی ندارید')
+        if not current_user.has_perm("api.add_TransactionRequests_for_others") and tr.profile.user != current_user:
+            raise Exception(
+                'عدم دسترسی, دسترسی لازم: (ایجاد درخواست مربوط به تراکنش برای دیگران)add_TransactionRequests_for_others')
+
+        new_tr = TransactionRequest.objects.create(transaction_id=transaction_id, kind_id=kind_id,
+                                                   description=description)
+
+        if images:
+            tr_type = ContentType.objects.get(app_label='api', model='transactionrequest')
+            for img in images:
+                img: CreateImageInput = img
+                Image.objects.create(object_id=new_tr.id, content_type=tr_type,
+                                     image=img.image, description=img.description, kind_id=img.kind_id)
+
+        new_tr.to_customer_add(by=current_user, description=description)
+
+        new_tr.save()
         if errors:
             return CreateTransactionRequest(ok=False, errors=errors)
         else:
-            return CreateTransactionRequest(ok=True, errors=errors)
+            return CreateTransactionRequest(ok=True, errors=errors, transaction_request=new_tr)
 
 
 class UserInput(graphene.InputObjectType):
     id = ID()
     username = String(required=True)
     password = String(required=True)
-    email = String()
 
 
 class CreateUser(graphene.Mutation):
@@ -366,6 +389,7 @@ class CreateProfile(graphene.Mutation):
     Output = CreateProfilePayload
 
     @permission_required("api.can_add_profile")
+    @login_required
     def mutate(self, info, input_data: CreateProfileInput):
         current_user: User = info.context.user
         new_profile: Profile = Profile()

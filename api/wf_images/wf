@@ -1,0 +1,51 @@
+digraph {
+	subgraph cluster_api_Profile_state {
+		graph [label="api.Profile.state"]
+		"api.پروفایل.state.customer_confirmed" [label=customer_confirmed shape=doublecircle]
+		"api.پروفایل.state.stuff_confirmed" [label=stuff_confirmed shape=doublecircle]
+		"api.پروفایل.state.customer_added" [label=customer_added shape=circle]
+		"api.پروفایل.state.converted" [label=converted shape=circle]
+		"api.پروفایل.state.stuff_added" [label=stuff_added shape=circle]
+		"api.پروفایل.state.start" [label=start shape=circle]
+		"api.پروفایل.state.customer_added" -> "api.پروفایل.state.customer_added" [label=stuff_reject]
+		"api.پروفایل.state.start" -> "api.پروفایل.state.converted" [label=to_convert]
+		"api.پروفایل.state.start" -> "api.پروفایل.state.customer_added" [label=to_customer_add]
+		"api.پروفایل.state.customer_added" -> "api.پروفایل.state.stuff_confirmed" [label=to_stuff_confirm]
+		"api.پروفایل.state.stuff_added" -> "api.پروفایل.state.stuff_added" [label=customer_reject]
+		"api.پروفایل.state.start" -> "api.پروفایل.state.stuff_added" [label=to_stuff_add]
+		"api.پروفایل.state.converted" -> "api.پروفایل.state.stuff_added" [label=converted_to_stuff_add]
+		"api.پروفایل.state.stuff_added" -> "api.پروفایل.state.customer_confirmed" [label=to_customer_confirm]
+	}
+	subgraph cluster_api_Transaction_state {
+		graph [label="api.Transaction.state"]
+		"api.transaction.state.boss_confirmed" [label=boss_confirmed shape=doublecircle]
+		"api.transaction.state.stuff_confirmed" [label=stuff_confirmed shape=circle]
+		"api.transaction.state.stuff_added" [label=stuff_added shape=circle]
+		"api.transaction.state.customer_added" [label=customer_added shape=circle]
+		"api.transaction.state.start" [label=start shape=circle]
+		"api.transaction.state._initial" [label="" shape=point]
+		"api.transaction.state._initial" -> "api.transaction.state.start"
+		"api.transaction.state.customer_confirmed" [label=customer_confirmed shape=circle]
+		"api.transaction.state.converted" [label=converted shape=circle]
+		"api.transaction.state.stuff_confirmed" -> "api.transaction.state.boss_confirmed" [label=to_boss_confirm]
+		"api.transaction.state.converted" -> "api.transaction.state.stuff_added" [label=converted_to_stuff_add]
+		"api.transaction.state.customer_added" -> "api.transaction.state.customer_added" [label=stuff_reject]
+		"api.transaction.state.start" -> "api.transaction.state.converted" [label=to_convert]
+		"api.transaction.state.customer_added" -> "api.transaction.state.stuff_confirmed" [label=to_stuff_confirm]
+		"api.transaction.state.start" -> "api.transaction.state.stuff_added" [label=to_stuff_add]
+		"api.transaction.state.customer_confirmed" -> "api.transaction.state.boss_confirmed" [label=customer_confirm_to_boss_confirm]
+		"api.transaction.state.stuff_added" -> "api.transaction.state.customer_confirmed" [label=to_customer_confirm]
+		"api.transaction.state.start" -> "api.transaction.state.customer_added" [label=to_customer_add]
+		"api.transaction.state.stuff_added" -> "api.transaction.state.stuff_added" [label=customer_reject]
+	}
+	subgraph cluster_api_TransactionRequest_state {
+		graph [label="api.TransactionRequest.state"]
+		"api.transaction_request.state.boss_confirmed" [label=boss_confirmed shape=doublecircle]
+		"api.transaction_request.state.stuff_checked" [label=stuff_checked shape=circle]
+		"api.transaction_request.state.start" [label=start shape=circle]
+		"api.transaction_request.state.customer_added" [label=customer_added shape=circle]
+		"api.transaction_request.state.stuff_checked" -> "api.transaction_request.state.boss_confirmed" [label=to_boss_confirmed]
+		"api.transaction_request.state.start" -> "api.transaction_request.state.customer_added" [label=to_customer_add]
+		"api.transaction_request.state.customer_added" -> "api.transaction_request.state.stuff_checked" [label=to_stuff_checked]
+	}
+}

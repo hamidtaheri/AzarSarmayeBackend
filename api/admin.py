@@ -65,7 +65,7 @@ class ProfileImageGalleryInline(admin.StackedInline):
 
 @admin.register(models.Profile)
 class AshkasAdmin(ImportExportModelAdmin):
-    list_display = ['id', '__str__', 'presenter', 'percent', 'state',]
+    list_display = ['id', '__str__', 'presenter', 'percent', 'state', ]
     list_filter = ['presenter', ]
     search_fields = ['id', 'last_name']
     ordering = ['id']
@@ -75,8 +75,9 @@ class AshkasAdmin(ImportExportModelAdmin):
 
 @admin.register(models.Transaction)
 class TarakoneshAdmin(admin.ModelAdmin):
-    list_display = ['profile', 'kind', 'amount', ]
-    list_filter = ['kind', 'date_time', ]
+    list_display = ['profile', 'kind', 'amount', 'state', ]
+    list_filter = ['kind', 'date_time', 'state', ]
+    search_fields = ['id', ]
 
 
 # @admin.register(models.Pelekan)
@@ -87,7 +88,7 @@ class TarakoneshAdmin(admin.ModelAdmin):
 @admin.register(models.Pelekan)
 class PelekanAdmin(admin.ModelAdmin):
     list_display = ["id", "az", "ta", "__str__"]
-    list_filter = ['kind',]
+    list_filter = ['kind', ]
     # history_list_display = ["status"]
 
 
