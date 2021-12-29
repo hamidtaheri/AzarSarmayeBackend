@@ -344,7 +344,7 @@ class CreateUser(graphene.Mutation):
 
 class CreateProfileInput(graphene.InputObjectType):
     # id = graphene.ID()
-    user_id = Int(required=False, description='کاربر متناظر')
+    user_id = Int(required=True, description='کاربر متناظر')
     # user = UserInput(required=True).Field()
     first_name = String()
     last_name = String()
@@ -388,7 +388,6 @@ class CreateProfile(graphene.Mutation):
 
     Output = CreateProfilePayload
 
-    @permission_required("api.can_add_profile")
     @login_required
     def mutate(self, info, input_data: CreateProfileInput):
         current_user: User = info.context.user
@@ -413,6 +412,7 @@ class CreateProfile(graphene.Mutation):
 
             setattr(new_profile, k, v)
 
+        # new_profile.save()
         try:
             new_profile.save()
         except:  # خطا در ثبت پروفایل
