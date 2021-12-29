@@ -299,7 +299,7 @@ def excel_to_bank_export_paya(in_file, out_file, sum, count):
         first_name = sheet_obj.cell(row=i, column=3).value  # نام
         last_name = sheet_obj.cell(row=i, column=4).value  # famil
         IBAN = sheet_obj.cell(row=i, column=5).value  # IBAN شماره حساب
-        InstdAmt = sheet_obj.cell(row=i, column=6).value  # InstdAmt مبلغ
+        InstdAmt = sheet_obj.cell(row=i, column=9).value  # InstdAmt مبلغ
         # print(last_name)
 
         xml = (

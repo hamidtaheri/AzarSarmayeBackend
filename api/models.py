@@ -304,7 +304,8 @@ class Profile(models.Model):
     two_step_verification = models.BooleanField(blank=False, null=False, default=False,
                                                 verbose_name='ورود دو مرحله ای با استفاده از پیامک')
     # profile workflow state
-    state = FSMField(choices=WorkFlowStates.STATES, protected=False, default="START", verbose_name='مرحله در گردش کار')
+    state = FSMField(choices=WorkFlowStates.STATES, protected=False, default=WorkFlowStates.START,
+                     verbose_name='مرحله در گردش کار')
 
     class Meta:
         verbose_name = "پروفایل"
@@ -547,7 +548,7 @@ class Transaction(models.Model):
     DarMelyoon_Moaref = models.IntegerField(blank=True, null=True)
     images = GenericRelation(Image, related_name='transaction_images')
     contract_term = models.SmallIntegerField(verbose_name='مدت قرارداد', null=True, blank=True)
-    state = FSMField(choices=WorkFlowStates.STATES, protected=True, default='start',)  # transaction workflow state
+    state = FSMField(choices=WorkFlowStates.STATES, protected=True,default=WorkFlowStates.START )  # transaction workflow state
     alias = models.CharField(max_length=200, verbose_name='نام دیگر', null=True, blank=True)
 
     # logging fields
@@ -850,7 +851,8 @@ class TransactionRequest(models.Model):
     images = GenericRelation(Image, related_name='transaction_request_images')
 
     # workflow state
-    state = FSMField(choices=WorkFlowStates.STATES, protected=False, default=WorkFlowStates.START, verbose_name='مرحله در گردش کار')
+    state = FSMField(choices=WorkFlowStates.STATES, protected=False, default=WorkFlowStates.START,
+                     verbose_name='مرحله در گردش کار')
 
     def __str__(self):
         return f'{self.kind.title} - {self.transaction}'
