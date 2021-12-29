@@ -239,3 +239,98 @@ def mohasebe_sod_moarefi_all_export_excel(az_date: datetime, ta_date: datetime):
     profit_details_excel.save(
         filename=f"profit-moarefi_details-{jdatetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.xlsx")
     print(f'finish')
+
+
+def excel_to_bank_export_paya(in_file, out_file, sum, count):
+    """
+    تبدیل خروجی نرم افزار مرادعلیان به فرمت مورد نیاز بانک برای پایا
+    :param in_file: فایل اکسل مرادعلیان
+    :param out_file: فایل خروجی مورد نظر با پسوند ccti
+    :param sum: مجموع پول وارد شده در فایل
+    :param count: تعداد واریزی های وارد شده در فایل
+    :return:
+    """
+    # path = "/Users/alamalhoda/Projects/AzarSaryame/backend/api/scripts/"
+    inp = f'{in_file}'
+    # outp = f'{path}paya-new.ccti'
+    outp = out_file
+    wb_obj = openpyxl.load_workbook(inp)
+    sheet_obj = wb_obj.active
+
+    max_row_no = sheet_obj.max_row  # تعداد ردیف ها
+    max_col = sheet_obj.max_column  # تعداد ستون ها
+    print(max_row_no)
+    export_file = open(outp, "a")
+    header = (f'<?xml version="1.0" encoding="utf-8" standalone="yes"?>\n'
+              f'<Document xmlns="urn:iso:std:iso:20022:tech:xsd:pain.002.001.03">\n'
+              f'  <CstmrCdtTrfInitn>\n'
+              f'    <GrpHdr>\n'
+              f'      <MsgId>IR100600521070009334410001000000000</MsgId>\n'
+              f'      <CreDtTm>1400-010-02T14:44:00</CreDtTm>\n'
+              f'      <NbOfTxs>{count}</NbOfTxs>\n'
+              f'      <CtrlSum>{sum}</CtrlSum>\n'
+              f'      <InitgPty>\n'
+              f'        <Nm>سامان مزرعه لی</Nm>\n'
+              f'      </InitgPty>\n'
+              f'    </GrpHdr>\n'
+              f'    <PmtInf>\n'
+              f'      <PmtInfId>1</PmtInfId>\n'
+              f'      <PmtMtd Ccy="IRR">TRF</PmtMtd>\n'
+              f'      <NbOfTxs>{count}</NbOfTxs>\n'
+              f'      <CtrlSum>{sum}</CtrlSum>\n'
+              f'      <ReqdExctnDt>1400-10-08</ReqdExctnDt>\n'
+              f'      <Dbtr>\n'
+              f'        <Nm>سامان مزرعه لی</Nm>\n'
+              f'      </Dbtr>\n'
+              f'      <DbtrAcct>\n'
+              f'        <Id>\n'
+              f'          <IBAN>IR100600521070009334410001</IBAN>\n'
+              f'        </Id>\n'
+              f'      </DbtrAcct>\n'
+              f'      <DbtrAgt>\n'
+              f'        <FinInstnId>\n'
+              f'          <BIC>BMJIIRTHXXX</BIC>\n'
+              f'        </FinInstnId>\n'
+              f'      </DbtrAgt>')
+
+    export_file.write(header)
+
+    for i in range(2, max_row_no + 1):
+        first_name = sheet_obj.cell(row=i, column=3).value  # نام
+        last_name = sheet_obj.cell(row=i, column=4).value  # famil
+        IBAN = sheet_obj.cell(row=i, column=5).value  # IBAN شماره حساب
+        InstdAmt = sheet_obj.cell(row=i, column=6).value  # InstdAmt مبلغ
+        # print(last_name)
+
+        xml = (
+            f'<CdtTrfTxInf>\n'
+            f'  <PmtId>\n'
+            f'    <InstrId>EMPTY</InstrId>\n'
+            f'    <EndToEndId>EMPTY</EndToEndId>\n'
+            f'  </PmtId>\n'
+            f'  <Amt>\n'
+            f'    <InstdAmt Ccy="IRR">{InstdAmt}</InstdAmt>\n'
+            f'  </Amt>\n'
+            f'  <Cdtr>\n'
+            f'    <Nm>{first_name} {last_name}</Nm>\n'
+            f'    <Id>\n'
+            f'      <PrvtId>\n'
+            f'        <Othr>\n'
+            f'        <Id>EMPTY</Id>\n'
+            f'        </Othr>\n'
+            f'      </PrvtId>\n'
+            f'     </Id>\n'
+            f'  </Cdtr>\n'
+            f'  <CdtrAcct>\n'
+            f'    <Id>\n'
+            f'      <IBAN>{IBAN}</IBAN>\n'
+            f'    </Id>\n'
+            f'  </CdtrAcct>\n'
+            f'</CdtTrfTxInf>\n')
+        export_file.write(xml)
+
+    footer = (f'    </PmtInf>\n'
+              f'  </CstmrCdtTrfInitn>\n'
+              f'</Document>')
+
+    export_file.write(footer)
