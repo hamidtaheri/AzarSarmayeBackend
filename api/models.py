@@ -511,9 +511,16 @@ class Plan(models.Model):
     end_date = models.DateField(null=True, blank=True)
     monthly = models.BooleanField(verbose_name='پرداخت سود ماهانه', default=True)
     description = models.TextField(null=True, blank=True)
+    active = models.BooleanField(default=True)
 
     def __str__(self):
         return self.title
+
+    class Meta:
+        permissions = (
+            ("view_all_plans_active", "مشاهده همه طرح ها [فعال و غیر فعال]"),
+            ("view_all_plans_date", "مشاهده همه طرح ها [در بازه و خارج از بازه]"),
+        )
 
 
 class Pelekan(models.Model):
@@ -548,7 +555,8 @@ class Transaction(models.Model):
     DarMelyoon_Moaref = models.IntegerField(blank=True, null=True)
     images = GenericRelation(Image, related_name='transaction_images')
     contract_term = models.SmallIntegerField(verbose_name='مدت قرارداد', null=True, blank=True)
-    state = FSMField(choices=WorkFlowStates.STATES, protected=True,default=WorkFlowStates.START )  # transaction workflow state
+    state = FSMField(choices=WorkFlowStates.STATES, protected=True,
+                     default=WorkFlowStates.START)  # transaction workflow state
     alias = models.CharField(max_length=200, verbose_name='نام دیگر', null=True, blank=True)
 
     # logging fields

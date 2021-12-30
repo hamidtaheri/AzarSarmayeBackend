@@ -127,12 +127,38 @@ class ChangePassword(graphene.Mutation):
 
 class CreateImageInput(graphene.InputObjectType):
     image = Upload(required=True)
+    object_id = graphene.Int(required=False, descripion='id چیزی که این تصویر مربوط به آن است')
+    model = graphene.String(required=False,
+                            description='نام چیزی مه این تصویر مربوط به آن است مانند profile , transaction')
     kind_id = graphene.Int()
     description = graphene.String()
 
 
 class CreateImagePayload(graphene.ObjectType):
     image = graphene.Field(ImageType, required=True)
+
+
+class CreateImage(graphene.Mutation):
+    """
+    افزودن تصویر
+    """
+
+    class Arguments:
+        input_data = CreateImageInput(required=True, name="input")
+
+    Output = CreateImagePayload
+
+    def mutate(self, info, input_data: CreateImageInput):
+        object_id = input_data.object_id
+        model = input_data.model
+        content_type = ContentType.objects.get(app_label='api', model=model)
+        image = input_data.image
+        kind_id = input_data.kind_id
+        description = input_data.description
+        new_image = Image.objects.create(object_id=object_id, content_type=content_type,
+                                         image=image, description=description, kind_id=kind_id)
+
+        return CreateImagePayload(new_image)
 
 
 class UpdateImageInput(CreateImageInput):
@@ -159,6 +185,7 @@ class CreateTransactionInput(graphene.InputObjectType):
     kind_id = graphene.Int(required=True, description='id نوع تراکنش')
     description = String(description='توضیحات')
     contract_term = String(required=False, description='مدت قرارداد')
+    plan_id = graphene.Int(required=True, description='کد طرح')
     images = graphene.List(CreateImageInput, required=False, description='پیوست ها')
 
 
@@ -665,6 +692,7 @@ class Mutation(graphene.ObjectType):
     create_user = CreateUser.Field(description='ایجاد کاربر')
     create_profile = CreateProfile.Field()
     update_profile = UpdateProfile.Field()
+    create_image = CreateImage.Field()
     stuff_confirm_profile = StuffConfirmProfile.Field(description='')
     profile_workflow_transition = ProfileWorkFlowTransition.Field(description='مرحله بعد در گردش کار پروفایل')
     transaction_workflow_transition = TransactionWorkFlowTransition.Field(description='مرحله بعد در گردش کار تراکنش')
