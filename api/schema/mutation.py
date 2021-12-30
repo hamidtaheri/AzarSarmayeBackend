@@ -142,7 +142,6 @@ class CreateImage(graphene.Mutation):
     """
     افزودن تصویر
     """
-
     class Arguments:
         input_data = CreateImageInput(required=True, name="input")
 
@@ -181,9 +180,12 @@ class CreateTransactionInput(graphene.InputObjectType):
     """
     profile_id = graphene.Int(required=True, description='کاربر تراکنش')
     effective_date = graphene.Date(required=True, description='تاریخ موثر')
+    expire_date = graphene.Date(required=False, description='تاریخ انقضا')
     amount = graphene.Float(required=True, description='مبلغ')
     kind_id = graphene.Int(required=True, description='id نوع تراکنش')
     description = String(description='توضیحات')
+    alias = String(description='نام دیگر')
+    receipt_number = String(description='شماره پیگیری')
     contract_term = String(required=False, description='مدت قرارداد')
     plan_id = graphene.Int(required=True, description='کد طرح')
     images = graphene.List(CreateImageInput, required=False, description='پیوست ها')
