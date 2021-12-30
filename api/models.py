@@ -547,6 +547,7 @@ class Transaction(models.Model):
     amount = models.BigIntegerField()
     kind = models.ForeignKey(TransactionKind, on_delete=models.CASCADE, related_name='transactions')
     plan = models.ForeignKey(to=Plan, on_delete=models.SET_NULL, null=True, blank=True)
+    receipt_number = models.CharField(max_length=35,blank=True, null=True, verbose_name='شماره پیگیری')
     NahveyePardakht = models.CharField(max_length=40, blank=True, null=True)
     description = models.TextField(blank=True, null=True)
     Tbl_Pardakht_List_id = models.IntegerField(blank=True, null=True)
