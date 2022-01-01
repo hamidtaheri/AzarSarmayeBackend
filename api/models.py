@@ -510,6 +510,7 @@ class Plan(models.Model):
     start_date = models.DateField(null=True, blank=True)
     end_date = models.DateField(null=True, blank=True)
     monthly = models.BooleanField(verbose_name='پرداخت سود ماهانه', default=True)
+    duration = models.IntegerField(verbose_name='مدت زمان قرارداد بر اساس ماه', null=False, blank=False, default=6)
     description = models.TextField(null=True, blank=True)
     active = models.BooleanField(default=True)
 
@@ -547,7 +548,8 @@ class Transaction(models.Model):
     amount = models.BigIntegerField()
     kind = models.ForeignKey(TransactionKind, on_delete=models.CASCADE, related_name='transactions')
     plan = models.ForeignKey(to=Plan, on_delete=models.SET_NULL, null=True, blank=True)
-    receipt_number = models.CharField(max_length=35,blank=True, null=True, verbose_name='شماره پیگیری')
+    receipt_number = models.CharField(max_length=35, blank=True, null=True, verbose_name='شماره پیگیری')
+    active = models.BooleanField(verbose_name='فعال', default=False, )  # فعال یا غیرفعال بودن تراکنش
     NahveyePardakht = models.CharField(max_length=40, blank=True, null=True)
     description = models.TextField(blank=True, null=True)
     Tbl_Pardakht_List_id = models.IntegerField(blank=True, null=True)
@@ -658,14 +660,14 @@ class Transaction(models.Model):
     @transition(field=state, source="customer_confirmed", target="boss_confirmed",
                 permission='api.WF_TRANSITION_TRANSACTION_COSTUMER_CONFIRMED_TO_BOSS_CONFIRMED')
     def customer_confirm_to_boss_confirm(self, by=None, description=None):
-        pass
+        self.active = True
 
     @fsm_log_by
     @fsm_log_description
     @transition(field=state, source="stuff_confirmed", target="boss_confirmed",
                 permission='api.WF_TRANSITION_TRANSACTION_STUFF_CONFIRMED_TO_BOSS_CONFIRMED')
-    def to_boss_confirm(self, by=None, description=None):
-        pass
+    def stuff_confirmed_to_boss_confirm(self, by=None, description=None):
+        self.active = True
 
     def percent_calculator(self) -> float:
         """
@@ -674,10 +676,12 @@ class Transaction(models.Model):
         if self.effective_date <= sh2m('1400/04/01'):
             return self.percent
         else:
+            # محاسبه سود به صورت تجمعی. بر اساس مجموع واریزی های قبلی و واریز جدید
             mojodi = self.profile.mojodi_ta(ta=self.effective_date)
+            mojodi_kol = mojodi + self.amount
             #   از کوچکتر مساوی از موجودی و تا بزرگتر از موجودی
             # lte=Less Than or Equal   gt=Greater Than
-            dar_melyon = Pelekan.objects.get(kind_id=1, az__lte=mojodi, ta__gt=mojodi).percent
+            dar_melyon = Pelekan.objects.get(kind_id=self.plan, az__lte=mojodi_kol, ta__gt=mojodi_kol).percent
             return dar_melyon
 
     def presenter_percent_calculator(self, ta_date: datetime.date) -> float:

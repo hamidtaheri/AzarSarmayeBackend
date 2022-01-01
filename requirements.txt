@@ -26,3 +26,4 @@ kavenegar==1.1.2  # SMS https://kavenegar.com/
 django-fsm
 django_fsm_log
 graphviz>=0.4
+python-dateutil

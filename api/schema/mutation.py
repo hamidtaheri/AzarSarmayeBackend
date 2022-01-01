@@ -1,5 +1,6 @@
 import graphene
 import graphql_jwt
+from dateutil.relativedelta import relativedelta
 from django.contrib.auth import authenticate
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import IntegrityError
@@ -227,9 +228,16 @@ class CreateTransaction(graphene.Mutation):
             if k != 'images':
                 setattr(new_transaction, k, v)
 
+        # محاسبه زمان پایان قرارداد بر اساس طرح انتخاب شده
+        selected_paln = Plan.objects.get(id=input_data.plan_id)
+        new_transaction.expire_date = input_data.effective_date + relativedelta(months=selected_paln.duration)
+        new_transaction.contract_term = selected_paln.duration
+
         new_transaction.date_time = now()
         new_transaction.created_by = current_user
-        new_transaction.percent = 0
+        #محاسبه درصد سود بر اساس مجموع واریزی های قبلی و مبلغ این واریزی و طرح انتخاب شده
+        new_transaction.percent = new_transaction.percent_calculator()
+
         new_transaction.save()
         if input_data.images:
             transaction_type = ContentType.objects.get(app_label='api', model='transaction')
