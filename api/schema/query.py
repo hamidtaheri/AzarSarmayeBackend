@@ -282,6 +282,7 @@ class MohasebeSodForAllSummaryType(ObjectType):
 class TransactionRequestType(DjangoObjectType):
     id = graphene.ID(source='pk', required=True)
     state_history = graphene.List(of_type=WorkFlowHistoryType)
+    images = graphene.List(of_type=ImageType)
     all_workflow_transitions = graphene.List(of_type=TransitionType, description='تمامی گردش کارهای تراکنش')
     available_workflow_transitions = graphene.List(of_type=TransitionType, description='گردش کارهای مجاز در این مرحله')
     available_user_workflow_transitions = graphene.List(of_type=TransitionType,
@@ -337,7 +338,7 @@ class TransactionType(DjangoObjectType):
         model = Transaction
         fields = (
             'profile', 'effective_date', 'date_time', 'amount', 'percent', 'kind', 'description', 'images',
-            'contract_term', 'expire_date', 'alias', 'plan', 'state')
+            'contract_term', 'expire_date', 'alias', 'plan', 'state', 'receipt_number')
         filter_fields = {'id': ['exact'], 'profile__id': ['exact'],
                          'effective_date': ['lte', 'gte', 'range'],
                          'kind__id': ['exact'],
@@ -651,4 +652,9 @@ class Query(graphene.ObjectType):
         return Bank.objects.all()
 
     def resolve_plan(self, info):
-        return Plan.objects.all()
+        current_user: get_user_model() = info.context.user
+        plans = Plan.objects.all()
+        if current_user.has_perm('api.view_all_plans_active'):
+            return plans
+        else:
+            return plans.filter(active=True)
