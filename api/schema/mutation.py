@@ -39,10 +39,55 @@ class Login(graphene.Mutation):
 
 
 class LoginOTP(graphene.Mutation):
+    """
+    نام کاربری و کلمه عبور را میگیرد و در صورت صحیح بودن یک پیامک به شماره موبایل کاربر ارسال میکند
+    برای تایید پیامک باید نام کاربری و کد ارسال شده از طریق متد ValidateOTP احراز شوند
+    """
+
     class Arguments:
         username = graphene.String(required=True)
         password = graphene.String(required=True)
-        otp = graphene.String(required=False)
+        # otp = graphene.String(required=False)
+
+    # user = graphene.Field(UserType)
+    # token = graphene.String()
+    ok = graphene.Boolean(required=True)
+    errors = graphene.List(graphene.String, required=True)
+    messages = graphene.List(graphene.String, required=False)
+
+    def mutate(self, info, username, password, ):
+        errors = []
+        messages = []
+
+        user = authenticate(username=username, password=password)
+        if user is None:
+            errors.append('نام کاربری یا کله عبور نادرست است.')
+        else:
+            try:
+                phone = user.profile.mobile1
+            except:
+                errors.append('اشکال در کاربر( احتمالا کاربر شماره موبایل ندارد{mobile1})')
+
+            otp_creator = OTP()
+            if otp_creator.generate_otp_code(phone=phone):
+                messages.append(' رمز یکبار مصرف 5 رقمی از طریق پیامک برای شما ارسال شد.')
+            else:
+                messages.append('حداقل فاصله بین ارسال رمز یکبار مصرف ۱۲۰ ثانیه است.')
+
+        if errors:
+            return LoginOTP(ok=False, errors=errors)
+        else:
+            return LoginOTP(ok=True, errors=errors, messages=messages)
+
+
+class ValidateOTP(graphene.Mutation):
+    """
+    بررسی کد یکبار رمز ارسال شده توسط کاربر
+    """
+
+    class Arguments:
+        username = graphene.String(required=True)
+        otp = graphene.String(required=True)
 
     user = graphene.Field(UserType)
     token = graphene.String()
@@ -60,17 +105,14 @@ class LoginOTP(graphene.Mutation):
                 phone = user.profile.mobile1
             except:
                 errors.append('اشکال در کاربر')
+
             otp_creator = OTP()
-            if otp is None or otp == '':
-                if otp_creator.generate_otp_code(phone=phone):
-                    errors.append(' رمز یکبار مصرف 5 رقمی از طریق پیامک برای شما ارسال شد.')
-                else:
-                    errors.append('حداقل فاصله بین ارسال رمز یکبار مصرف ۱۲۰ ثانیه است.')
+            if otp_creator.validate_otp_code(phone=phone, code=otp):
+                user.last_login = timezone.now()
+                user.save(update_fields=['last_login'])
+                token = get_token(user)
             else:
-                if otp_creator.validate_otp_code(phone=phone, code=otp):
-                    user.last_login = timezone.now()
-                    user.save(update_fields=['last_login'])
-                    token = get_token(user)
+                errors.append('کد ارسال شده نادرست است')
 
         if errors:
             return LoginOTP(ok=False, errors=errors)
@@ -143,6 +185,7 @@ class CreateImage(graphene.Mutation):
     """
     افزودن تصویر
     """
+
     class Arguments:
         input_data = CreateImageInput(required=True, name="input")
 
@@ -235,7 +278,7 @@ class CreateTransaction(graphene.Mutation):
 
         new_transaction.date_time = now()
         new_transaction.created_by = current_user
-        #محاسبه درصد سود بر اساس مجموع واریزی های قبلی و مبلغ این واریزی و طرح انتخاب شده
+        # محاسبه درصد سود بر اساس مجموع واریزی های قبلی و مبلغ این واریزی و طرح انتخاب شده
         new_transaction.percent = new_transaction.percent_calculator()
 
         new_transaction.save()
@@ -647,7 +690,7 @@ class ProfileWorkFlowTransition(graphene.Mutation):
             getattr(profile, transition)(by=current_user, description=description)
             profile.save()
         else:
-            errors.append('transition ثrror')
+            errors.append(f'transition error permission denied for {transition} .')
 
         if errors:
             return ProfileWorkFlowTransition(ok=False, errors=errors)
@@ -695,6 +738,7 @@ class TransactionWorkFlowTransition(graphene.Mutation):
 class Mutation(graphene.ObjectType):
     login = Login.Field()
     login_otp = LoginOTP.Field()
+    validate_otp = ValidateOTP.Field()
     change_password = ChangePassword.Field()
     create_transaction = CreateTransaction.Field()
     create_transaction_request = CreateTransactionRequest.Field()
