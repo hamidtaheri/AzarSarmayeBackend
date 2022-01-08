@@ -3,6 +3,7 @@ from random import randrange
 
 import jdatetime
 from crum import get_current_user
+from django.contrib import auth
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AbstractUser
 from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
@@ -517,7 +518,8 @@ class Plan(models.Model):
     max_amount = models.BigIntegerField(null=True, blank=True,
                                         verbose_name='سقف جذب یعنی حداکثر مبلغی که شرکت مایل است در این طرح جذب شود')
     min_point = models.BigIntegerField(verbose_name='نقطه فرآخوان', null=True, blank=True)
-    visible_for = models.ManyToManyField(to=auth.models.Group, verbose_name='گروه هایی که میتوانند طرح را ببینند')
+    visible_for = models.ManyToManyField(to=auth.models.Group, blank=True,
+                                         verbose_name='گروه هایی که میتوانند طرح را ببینند')
     aggregate = models.BooleanField(verbose_name='آیا تجمعی است؟', default=True,
                                     help_text='مشخص میکند آیا محاسبه درصد سود در این طرح بر اساس مجموع واریزی های قبلی است یا بر اساس مبلغ هر سرمایه گزاری')
 
@@ -527,8 +529,9 @@ class Plan(models.Model):
     def save(self, *args, **kwargs):
         if self.duration % self.every_n_months != 0:
             raise MyException("خطا در تعریف طرح دوره عدم تناسب مدت زمان و بازه پرداخت سود")
-        if self.min_point > self.max_amount:
-            raise MyException("خطا در تعریف طرح نطقه فرآخوان نباید کمتر از سقف جذب باشد")
+        if self.min_point and self.max_amount:
+            if self.min_point > self.max_amount:
+                raise MyException("خطا در تعریف طرح نطقه فرآخوان نباید کمتر از سقف جذب باشد")
         super(Plan, self).save(*args, **kwargs)
 
     class Meta:

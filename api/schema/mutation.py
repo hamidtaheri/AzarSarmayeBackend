@@ -745,7 +745,6 @@ class CreatePlanInput(graphene.InputObjectType):
     max_amount = graphene.Float(required=False,
                                 description='سقف جذب یعنی حداکثر مبلغی که شرکت مایل است در این طرح جذب شود')
     min_point = graphene.Float(required=False, description='نقطه فرآخوان')
-    visible_for = graphene.List(of_type=Int, description=' id گروه هایی که میتوانند طرح را ببینند')
     aggregate = graphene.Boolean(description='آیا تجمعی است؟')
 
 
@@ -766,19 +765,40 @@ class CreatePlan(graphene.Mutation):
         errors = []
         try:
             input_dict = input_data.__dict__
-            vis_for = input_dict.pop('visible_for', None)
             new_plan = Plan.objects.create(**input_dict)
-
-            if vis_for is not None:
-                groups = Group.objects.filter(id__in=vis_for)
-                new_plan.visible_for.set(groups)
-
         except MyException as e:
             errors.append(e)
         if errors:
             return CreatePlanPayload(ok=False, errors=errors)
         else:
             return CreatePlanPayload(ok=True, plan=new_plan)
+
+
+class JoinPlansGroupsInput(graphene.InputObjectType):
+    plans = graphene.List(Int, required=True, description='id طرح(ها)')
+    groups = graphene.List(Int, required=True, description='id گروه(ها)')
+
+
+class JoinPlansGroups(graphene.Mutation):
+    class Arguments:
+        input_data = JoinPlansGroupsInput(required=True, name="input")
+
+
+    ok = graphene.Boolean(required=True)
+    errors = graphene.List(graphene.String, required=False)
+
+    @permission_required('api.can_add_plan')
+    def mutate(self, info, input_data: JoinPlansGroupsInput):
+        plans = input_data.plans
+        groups = input_data.groups
+
+        plans = Plan.objects.filter(id__in=plans)
+        groups = Group.objects.filter(id__in=groups)
+        for plan in plans:
+            plan.visible_for.clear()
+            plan.visible_for.add(*groups)
+
+        return JoinPlansGroups(ok=True)
 
 
 class Mutation(graphene.ObjectType):
@@ -797,6 +817,7 @@ class Mutation(graphene.ObjectType):
     profile_workflow_transition = ProfileWorkFlowTransition.Field(description='مرحله بعد در گردش کار پروفایل')
     transaction_workflow_transition = TransactionWorkFlowTransition.Field(description='مرحله بعد در گردش کار تراکنش')
     create_plan = CreatePlan.Field(description='ایجاد طرح')
+    join_plansgroups = JoinPlansGroups.Field()
     # create_tarakonesh = CreateTarakonesh.Field()
     token_auth = graphql_jwt.ObtainJSONWebToken.Field()
     delete_token = graphql_jwt.Revoke.Field()
