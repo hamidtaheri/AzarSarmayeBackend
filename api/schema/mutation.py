@@ -8,7 +8,7 @@ from django.utils import timezone
 from django.utils.timezone import now
 from graphene import String, ID
 from graphene_file_upload.scalars import Upload
-from graphql_jwt.decorators import permission_required
+from graphql_jwt.decorators import permission_required, user_passes_test
 from graphql_jwt.exceptions import PermissionDenied
 from graphql_jwt.shortcuts import get_token
 
@@ -735,6 +735,52 @@ class TransactionWorkFlowTransition(graphene.Mutation):
             return TransactionWorkFlowTransition(ok=True, errors=errors)
 
 
+class CreatePlanInput(graphene.InputObjectType):
+    title = String(required=True, description='توضیحات')
+    start_date = graphene.Date(required=False)
+    end_date = graphene.Date(required=False)
+    duration = graphene.Int(required=True, default=6, description='مدت زمان قرارداد بر اساس ماه')
+    description = String(description='توضیحات')
+    every_n_months = graphene.Int(required=True, default=1, description='پرداخت سود هر چند ماه یکبار')
+    max_amount = graphene.Float(required=False,
+                                description='سقف جذب یعنی حداکثر مبلغی که شرکت مایل است در این طرح جذب شود')
+    min_point = graphene.Float(required=False, description='نقطه فرآخوان')
+    visible_for = graphene.List(of_type=Int, description=' id گروه هایی که میتوانند طرح را ببینند')
+    aggregate = graphene.Boolean(description='آیا تجمعی است؟')
+
+
+class CreatePlanPayload(graphene.ObjectType):
+    plan = graphene.Field(PlanType, required=True)
+    ok = graphene.Boolean(required=True)
+    errors = graphene.List(graphene.String, required=False)
+
+
+class CreatePlan(graphene.Mutation):
+    class Arguments:
+        input_data = CreatePlanInput(required=True, name="input")
+
+    Output = CreatePlanPayload
+
+    @permission_required('api.can_add_plan')
+    def mutate(self, info, input_data: CreatePlanInput):
+        errors = []
+        try:
+            input_dict = input_data.__dict__
+            vis_for = input_dict.pop('visible_for', None)
+            new_plan = Plan.objects.create(**input_dict)
+
+            if vis_for is not None:
+                groups = Group.objects.filter(id__in=vis_for)
+                new_plan.visible_for.set(groups)
+
+        except MyException as e:
+            errors.append(e)
+        if errors:
+            return CreatePlanPayload(ok=False, errors=errors)
+        else:
+            return CreatePlanPayload(ok=True, plan=new_plan)
+
+
 class Mutation(graphene.ObjectType):
     login = Login.Field()
     login_otp = LoginOTP.Field()
@@ -750,6 +796,7 @@ class Mutation(graphene.ObjectType):
     stuff_confirm_profile = StuffConfirmProfile.Field(description='')
     profile_workflow_transition = ProfileWorkFlowTransition.Field(description='مرحله بعد در گردش کار پروفایل')
     transaction_workflow_transition = TransactionWorkFlowTransition.Field(description='مرحله بعد در گردش کار تراکنش')
+    create_plan = CreatePlan.Field(description='ایجاد طرح')
     # create_tarakonesh = CreateTarakonesh.Field()
     token_auth = graphql_jwt.ObtainJSONWebToken.Field()
     delete_token = graphql_jwt.Revoke.Field()

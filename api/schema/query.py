@@ -458,10 +458,21 @@ def allowed_workflow_sates(user: User) -> list:
 
 class PlanType(DjangoObjectType):
     id = graphene.ID(source='pk', required=True)
+    max_amount = graphene.Float()
+    min_point = graphene.Float()
 
     class Meta:
         model = Plan
-        fields = ['title', 'start_date', 'end_date', 'monthly', 'description', 'pelekans', 'duration', ]
+        fields = ['title', 'start_date', 'end_date', 'description', 'pelekans', 'duration', 'active',
+                  'every_n_months', 'max_amount', 'min_point', 'aggregate', 'visible_for']
+
+    @staticmethod
+    def resolve_max_amount(self, info):
+        return self.max_amount
+
+    @staticmethod
+    def resolve_min_point(self, info):
+        return self.min_point
 
 
 class PelekanType(DjangoObjectType):
@@ -653,9 +664,14 @@ class Query(graphene.ObjectType):
         return Bank.objects.all()
 
     def resolve_plan(self, info):
-        current_user: get_user_model() = info.context.user
-        plans = Plan.objects.all()
-        if current_user.has_perm('api.view_all_plans_active'):
-            return plans
-        else:
-            return plans.filter(active=True)
+        current_user: User = info.context.user
+        user_groups = current_user.groups.all()
+        plans = Plan.objects.filter(visible_for__in=user_groups)  # فیلتر بر اساس دسترسی کاربر
+        if not current_user.has_perm('api.view_all_plans_active'):
+            plans = plans.filter(active=True)
+
+        if not current_user.has_perm('api.view_all_plans_date'):
+            now = datetime.date.today()
+            plans = plans.filter(start_date__lt=now, start_date__gt=now)
+
+        return plans

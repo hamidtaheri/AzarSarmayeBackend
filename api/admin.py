@@ -92,6 +92,11 @@ class PelekanAdmin(admin.ModelAdmin):
     # history_list_display = ["status"]
 
 
+@admin.register(models.Plan)
+class PlanAdmin(admin.ModelAdmin):
+    list_display = ['__str__', 'duration', 'every_n_months']
+
+
 @admin.register(models.TransactionKind)
 class TransactionKindAdmin(ImportExportModelAdmin):
     pass
@@ -100,7 +105,7 @@ class TransactionKindAdmin(ImportExportModelAdmin):
 admin.site.register(models.Post)
 admin.site.register(models.ImageKind)
 admin.site.register(models.ProfitKind)
-admin.site.register(models.Plan)
+# admin.site.register(models.Plan)
 admin.site.register(models.ProfileImageGallery)
 admin.site.register(models.TransactionRequest)
 admin.site.register(models.TransactionRequestKind)

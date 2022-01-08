@@ -509,16 +509,32 @@ class Plan(models.Model):
     title = models.CharField(max_length=200)
     start_date = models.DateField(null=True, blank=True)
     end_date = models.DateField(null=True, blank=True)
-    monthly = models.BooleanField(verbose_name='پرداخت سود ماهانه', default=True)
+    # monthly = models.BooleanField(verbose_name='پرداخت سود ماهانه', default=True)
     duration = models.IntegerField(verbose_name='مدت زمان قرارداد بر اساس ماه', null=False, blank=False, default=6)
     description = models.TextField(null=True, blank=True)
     active = models.BooleanField(default=True)
+    every_n_months = models.IntegerField(verbose_name='پرداخت سود هر چند ماه یکبار', default=1)
+    max_amount = models.BigIntegerField(null=True, blank=True,
+                                        verbose_name='سقف جذب یعنی حداکثر مبلغی که شرکت مایل است در این طرح جذب شود')
+    min_point = models.BigIntegerField(verbose_name='نقطه فرآخوان', null=True, blank=True)
+    visible_for = models.ManyToManyField(to=auth.models.Group, verbose_name='گروه هایی که میتوانند طرح را ببینند')
+    aggregate = models.BooleanField(verbose_name='آیا تجمعی است؟', default=True,
+                                    help_text='مشخص میکند آیا محاسبه درصد سود در این طرح بر اساس مجموع واریزی های قبلی است یا بر اساس مبلغ هر سرمایه گزاری')
 
     def __str__(self):
         return self.title
 
+    def save(self, *args, **kwargs):
+        if self.duration % self.every_n_months != 0:
+            raise MyException("خطا در تعریف طرح دوره عدم تناسب مدت زمان و بازه پرداخت سود")
+        if self.min_point > self.max_amount:
+            raise MyException("خطا در تعریف طرح نطقه فرآخوان نباید کمتر از سقف جذب باشد")
+        super(Plan, self).save(*args, **kwargs)
+
     class Meta:
         permissions = (
+            ("can_add_plan", "ایجاد طرح جدید"),
+            ("can_activate_deactivate_plan", "فعال یا غیر فعال سازی طرح"),
             ("view_all_plans_active", "مشاهده همه طرح ها [فعال و غیر فعال]"),
             ("view_all_plans_date", "مشاهده همه طرح ها [در بازه و خارج از بازه]"),
         )
