@@ -783,7 +783,6 @@ class JoinPlansGroups(graphene.Mutation):
     class Arguments:
         input_data = JoinPlansGroupsInput(required=True, name="input")
 
-
     ok = graphene.Boolean(required=True)
     errors = graphene.List(graphene.String, required=False)
 
@@ -799,6 +798,27 @@ class JoinPlansGroups(graphene.Mutation):
             plan.visible_for.add(*groups)
 
         return JoinPlansGroups(ok=True)
+
+
+class CreatePelekanInput(graphene.InputObjectType):
+    kind_id = graphene.Int(required=True, )
+    az = graphene.Float(required=True)
+    ta = graphene.Float(required=True)
+    percent = graphene.Int(required=True)
+
+
+class CreatePelekan(graphene.Mutation):
+    class Arguments:
+        input_data = CreatePelekanInput(required=True, name="input")
+
+    pelekan = graphene.Field(PelekanType)
+    ok = graphene.Boolean(required=True)
+    errors = graphene.List(graphene.String, required=False)
+
+    @permission_required('api.can_add_plan')
+    def mutate(self, info, input_data: CreatePelekanInput):
+        new_pelekan = Pelekan.objects.create(**input_data)
+        return CreatePelekan(ok=True, pelekan=new_pelekan)
 
 
 class Mutation(graphene.ObjectType):
@@ -817,6 +837,7 @@ class Mutation(graphene.ObjectType):
     profile_workflow_transition = ProfileWorkFlowTransition.Field(description='مرحله بعد در گردش کار پروفایل')
     transaction_workflow_transition = TransactionWorkFlowTransition.Field(description='مرحله بعد در گردش کار تراکنش')
     create_plan = CreatePlan.Field(description='ایجاد طرح')
+    create_pelekan = CreatePelekan.Field()
     join_plansgroups = JoinPlansGroups.Field()
     # create_tarakonesh = CreateTarakonesh.Field()
     token_auth = graphql_jwt.ObtainJSONWebToken.Field()

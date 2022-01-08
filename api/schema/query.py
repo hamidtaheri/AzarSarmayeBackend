@@ -479,6 +479,7 @@ class PelekanType(DjangoObjectType):
     id = graphene.ID(source='pk', required=True)
     az = graphene.Float()
     ta = graphene.Float()
+    plan_title  = graphene.String()
 
     class Meta:
         model = Pelekan
@@ -487,6 +488,12 @@ class PelekanType(DjangoObjectType):
     @staticmethod
     def resolve_az(self, info):
         return self.az
+
+
+    @staticmethod
+    def resolve_plan_title(self, info):
+        return self.kind.title
+
 
     @staticmethod
     def resolve_ta(self, info):
@@ -672,6 +679,6 @@ class Query(graphene.ObjectType):
 
         if not current_user.has_perm('api.view_all_plans_date'):
             now = datetime.date.today()
-            plans = plans.filter(start_date__lt=now, start_date__gt=now)
+            plans = plans.filter(start_date__lt=now, end_date__gt=now)
 
         return plans
